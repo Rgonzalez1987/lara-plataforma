@@ -713,7 +713,7 @@
             <div class="nav-item" data-nav="study" onclick="app.switchScreen('study', this)"><i data-lucide="book-open"></i> Estudio</div>
             <div class="nav-item" data-nav="social" onclick="app.switchScreen('social', this)"><i data-lucide="users"></i> Amigas 🔥</div>
             <div class="nav-item" data-nav="stats" onclick="app.switchScreen('stats', this)"><i data-lucide="bar-chart-3"></i> Progreso</div>
-            <div class="nav-item" id="nav-item-admin" data-nav="admin" style="display:none;" onclick="app.switchScreen('admin', this)"><i data-lucide="shield-check"></i> Panel Maestro</div>
+            <div class="nav-item" data-nav="papi" onclick="app.switchScreen('papi', this)"><i data-lucide="shield-check"></i> Modo Papi</div>
         </nav>
         <div style="margin-top: auto; padding: 1rem; background: var(--glass); border-radius: 20px; cursor:pointer;" onclick="app.showUserSelection()">
             <p style="font-size: 0.6rem; opacity: 0.5; margin-bottom: 0.2rem;">Perfil Activo</p>
@@ -1319,132 +1319,193 @@
             </div>
         </div>
 
-        <!-- ADMIN MAESTRO (PANEL DE CONTROL TOTAL) -->
-        <div id="screen-admin" class="screen">
-            <div id="admin-main-panel" style="display:flex; flex-direction:column; gap:1.5rem;">
-                <div class="glass-card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; padding:1.5rem 2rem;">
-                    <div style="display:flex; align-items:center; gap:1rem;">
-                        <span style="font-size:3rem;">🏛️</span>
-                        <div>
-                            <h2 style="font-size:1.8rem; font-weight:800; background:linear-gradient(to right, #a78bfa, #f472b6); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">Panel Maestro de Control</h2>
-                            <p style="opacity:0.7; font-size:0.85rem;">Supervisión global de alumnas, contraseñas, retos y contenidos</p>
-                        </div>
+        <!-- MODO PAPI (CONTROL PARENTAL DE CADA ALUMNA) -->
+        <div id="screen-papi" class="screen">
+            <div class="glass-card" id="papi-login-box" style="max-width:440px; margin:2rem auto; text-align:center; padding:2rem;">
+                <span style="font-size:3rem; display:block; margin-bottom:0.5rem;">👨‍🏫</span>
+                <h2 style="margin-bottom:0.4rem;">Control de Padres / Modo Papi</h2>
+                <p style="opacity:0.7; font-size:0.85rem; margin-bottom:1.5rem;">Introduce tu PIN para configurar la IA y supervisar el progreso de <strong id="papi-student-name">tu hija</strong>:</p>
+                <input type="password" id="papi-pass-input" class="arcade-input" style="font-size:1.8rem; text-align:center; max-width:200px; margin:0 auto 1.2rem auto; letter-spacing:0.3rem;" placeholder="PIN" maxlength="6" onkeyup="if(event.key==='Enter') app.checkPapiPin()">
+                <button class="btn" style="width:100%;" onclick="app.checkPapiPin()">🔓 Desbloquear Panel</button>
+                <p id="papi-pin-msg" style="color:var(--error); font-size:0.8rem; margin-top:0.8rem; display:none;"></p>
+                <small style="opacity:0.5; display:block; margin-top:1rem;">PIN por defecto: 1234 o 7410</small>
+            </div>
+
+            <div id="papi-main-panel" style="display:none; flex-direction:column; gap:1.5rem; max-width:900px; margin:0 auto;">
+                <div class="glass-card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; padding:1.2rem 1.8rem;">
+                    <div>
+                        <h2 style="font-size:1.6rem; font-weight:800; color:white;">🛡️ Panel Familiar de <span id="papi-title-student-name" style="color:var(--primary);">Lara</span></h2>
+                        <p style="opacity:0.7; font-size:0.85rem;">Clave personal de IA, generador de misiones y progreso formativo</p>
                     </div>
-                    <div style="display:flex; gap:0.6rem;">
-                        <button class="btn" style="padding:0.5rem 1rem; font-size:0.8rem; background:rgba(255,255,255,0.08);" onclick="app.loadAdminStudents()"><i data-lucide="refresh-cw"></i> Actualizar</button>
-                    </div>
+                    <button class="btn" style="padding:0.4rem 0.9rem; font-size:0.75rem; background:rgba(255,255,255,0.08);" onclick="app.lockPapi()">🔒 Salir del Modo Papi</button>
                 </div>
 
-                <!-- Subtabs Admin -->
-                <div style="display:flex; gap:0.8rem; background:rgba(0,0,0,0.3); padding:0.4rem; border-radius:18px; max-width:750px; overflow-x:auto;">
-                    <div class="segment active" id="tab-admin-students" onclick="app.switchAdminTab('students')">👥 Gestión de Alumnas</div>
-                    <div class="segment" id="tab-admin-security" onclick="app.switchAdminTab('security')">🔐 Seguridad Admin & IA</div>
-                    <div class="segment" id="tab-admin-battles" onclick="app.switchAdminTab('battles')">⚔️ Monitor de Batallas</div>
-                    <div class="segment" id="tab-admin-missions" onclick="app.switchAdminTab('missions')">🎯 Misiones de la Plataforma</div>
+                <!-- Pestañas Modo Papi -->
+                <div style="display:flex; gap:0.6rem; background:rgba(0,0,0,0.3); padding:0.3rem; border-radius:16px; width:fit-content;">
+                    <div class="segment active" id="tab-papi-ai" onclick="app.switchPapiTab('ai')">🔑 Clave IA & Misiones</div>
+                    <div class="segment" id="tab-papi-diagnosis" onclick="app.switchPapiTab('diagnosis')">📊 Diagnóstico & Fallos</div>
                 </div>
 
-                <!-- PESTAÑA 1: GESTIÓN DE ALUMNAS -->
-                <div id="admin-sub-students" style="display:flex; flex-direction:column; gap:1.5rem;">
-                    <!-- KPIs de la plataforma -->
-                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:1rem;">
-                        <div class="glass-card" style="padding:1.2rem; text-align:center;">
-                            <div style="font-size:0.8rem; opacity:0.6;">Alumnas Registradas</div>
-                            <div id="kpi-admin-total-students" style="font-size:2.2rem; font-weight:800; color:var(--primary);">0</div>
-                        </div>
-                        <div class="glass-card" style="padding:1.2rem; text-align:center;">
-                            <div style="font-size:0.8rem; opacity:0.6;">XP Total Generado</div>
-                            <div id="kpi-admin-total-xp" style="font-size:2.2rem; font-weight:800; color:#fbbf24;">0</div>
-                        </div>
-                        <div class="glass-card" style="padding:1.2rem; text-align:center;">
-                            <div style="font-size:0.8rem; opacity:0.6;">Líder de la Plataforma</div>
-                            <div id="kpi-admin-leader" style="font-size:1.4rem; font-weight:800; color:#38bdf8; margin-top:0.4rem;">-</div>
-                        </div>
-                    </div>
-
-                    <!-- Ficha Detallada de la Alumna Seleccionada -->
-                    <div class="glass-card">
-                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
-                            <div>
-                                <h3>Ficha y Control de Alumna</h3>
-                                <p style="opacity:0.7; font-size:0.85rem;">Cambia contraseñas, edita XP, protectores o revisa fallos:</p>
-                            </div>
-                            <select id="admin-student-select" class="arcade-input" style="font-size:1rem; padding:0.6rem 1rem; width:auto; min-width:240px;" onchange="app.renderAdminStudentDetail(this.value)">
-                                <option value="">Cargando alumnas...</option>
-                            </select>
-                        </div>
-
-                        <div id="admin-student-card" style="display:none; background:rgba(255,255,255,0.02); border:1px solid var(--glass-border); border-radius:20px; padding:1.5rem;">
-                            <!-- Inyectado dinámicamente -->
-                        </div>
-                    </div>
-
-                    <!-- Listado Completo de Alumnas -->
-                    <div class="glass-card">
-                        <h4 style="margin-bottom:1rem;">Lista de Alumnas Registradas en la Nube</h4>
-                        <div id="admin-all-students-list" style="display:flex; flex-direction:column; gap:0.6rem;"></div>
-                    </div>
-                </div>
-
-                <!-- PESTAÑA 2: SEGURIDAD ADMIN & CLAVE IA -->
-                <div id="admin-sub-security" style="display:none; flex-direction:column; gap:1.5rem;">
-                    <!-- Cambiar Contraseña de Administrador -->
-                    <div class="glass-card">
-                        <h3 style="margin-bottom:0.5rem;">🔐 Contraseña de la Cuenta de Administrador</h3>
-                        <p style="opacity:0.7; font-size:0.85rem; margin-bottom:1.2rem;">Cambia la contraseña de tu usuario 'admin' (actualmente 'admin1234'):</p>
-                        <div style="display:flex; gap:1rem; max-width:500px;">
-                            <input type="password" id="admin-new-pass" class="arcade-input" style="font-size:1.1rem; padding:0.7rem; flex:1;" placeholder="Nueva contraseña segura...">
-                            <button class="btn" style="padding:0 1.5rem;" onclick="app.adminChangeOwnPassword()">Guardar</button>
-                        </div>
-                        <p id="admin-pass-change-msg" style="font-size:0.85rem; margin-top:0.8rem; font-weight:700;"></p>
-                    </div>
-
-                    <!-- Configuración IA Gemini -->
+                <!-- Subsección 1: IA y Misiones para su hija -->
+                <div id="papi-sub-ai" style="display:flex; flex-direction:column; gap:1.5rem;">
+                    <!-- Clave de Gemini -->
                     <div class="glass-card">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
                             <h3>🔑 Clave Personal de Google Gemini (IA)</h3>
-                            <div id="ai-status-dot" style="width:12px; height:12px; border-radius:50%; background:var(--error); box-shadow:0 0 10px var(--error);"></div>
+                            <div id="papi-ai-status-dot" style="width:12px; height:12px; border-radius:50%; background:var(--error); box-shadow:0 0 10px var(--error);"></div>
                         </div>
-                        <div style="background:rgba(139,92,246,0.1); border:1px solid rgba(139,92,246,0.3); padding:1rem; border-radius:14px; margin-bottom:1.5rem; font-size:0.85rem; line-height:1.5;">
-                            🛡️ <strong>Tu cuota está protegida:</strong> Cada familia introduce su propia clave gratuita de Google Gemini. Tu clave no se comparte ni permite que otros usuarios gasten saldo de tu cuenta de Google.
+                        <div style="background:rgba(139,92,246,0.1); border:1px solid rgba(139,92,246,0.3); padding:0.9rem; border-radius:14px; margin-bottom:1.2rem; font-size:0.85rem; line-height:1.5;">
+                            🛡️ <strong>Privada y Gratuita:</strong> Tu clave solo se guarda en este dispositivo para el perfil de tu hija. No se comparte con otros alumnos ni consume saldo de otras familias.
                         </div>
-                        <div style="margin-bottom: 1.5rem;">
-                            <label style="font-size: 0.8rem; opacity: 0.6;">Tu API Key de Gemini</label>
-                            <input type="password" id="admin-api-key" class="admin-input" placeholder="AIzaSy...">
+                        <div style="margin-bottom: 1rem;">
+                            <label style="font-size: 0.8rem; opacity: 0.6;">Tu API Key de Google Gemini</label>
+                            <input type="password" id="papi-api-key" class="admin-input" placeholder="AIzaSy...">
                             <div style="display:flex; gap:0.5rem; margin-top:0.8rem;">
-                                <button class="btn" style="flex:1; font-size: 0.85rem; padding: 0.6rem;" onclick="app.saveApiKey()">💾 Guardar Clave</button>
-                                <button class="btn" style="flex:1; font-size: 0.85rem; padding: 0.6rem; background:var(--accent);" onclick="app.testApiKey()">🔍 Probar Conexión</button>
+                                <button class="btn" style="flex:1; font-size: 0.85rem; padding: 0.6rem;" onclick="app.savePapiApiKey()">💾 Guardar Clave</button>
+                                <button class="btn" style="flex:1; font-size: 0.85rem; padding: 0.6rem; background:var(--accent);" onclick="app.testPapiApiKey()">🔍 Probar Conexión</button>
                             </div>
-                            <p id="api-test-result" style="font-size:0.8rem; margin-top:0.8rem; font-weight:700;"></p>
+                            <p id="papi-api-test-result" style="font-size:0.8rem; margin-top:0.8rem; font-weight:700;"></p>
                         </div>
                     </div>
-                </div>
 
-                <!-- PESTAÑA 3: MONITOR DE BATALLAS / RETOS -->
-                <div id="admin-sub-battles" style="display:none; flex-direction:column; gap:1.5rem;">
+                    <!-- Generador de Misiones -->
                     <div class="glass-card">
-                        <h3 style="margin-bottom:0.5rem;">⚔️ Monitor de Retos entre Alumnas</h3>
-                        <p style="opacity:0.7; font-size:0.85rem; margin-bottom:1.5rem;">Revisa todas las partidas de cálculo mental jugadas entre compañeras:</p>
-                        <div id="admin-battles-list" style="display:flex; flex-direction:column; gap:0.8rem;"></div>
-                    </div>
-                </div>
-
-                <!-- PESTAÑA 4: MISIONES DE LA PLATAFORMA -->
-                <div id="admin-sub-missions" style="display:none; flex-direction:column; gap:1.5rem;">
-                    <div class="glass-card">
-                        <h3>Generador de Misiones con Aprendizaje Guiado</h3>
+                        <h3>✨ Generador de Misiones para tu Hija</h3>
+                        <p style="opacity:0.7; font-size:0.85rem; margin-bottom:1rem;">Crea aventuras educativas guiadas paso a paso con preguntas interactivas:</p>
                         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin:1rem 0;">
-                            <div><label>Asignatura</label><select id="ai-subject" class="admin-input"><option>Matemáticas</option><option>Lengua</option><option>Sociales</option><option>Inglés</option></select></div>
-                            <div><label>Curso</label><select id="ai-grade" class="admin-input"><option>1º Primaria</option><option>2º Primaria</option><option>3º Primaria</option><option>4º Primaria</option><option>5º Primaria</option><option>6º Primaria</option></select></div>
+                            <div><label>Asignatura</label><select id="papi-ai-subject" class="admin-input"><option>Matemáticas</option><option>Lengua</option><option>Sociales</option><option>Inglés</option></select></div>
+                            <div><label>Curso</label><select id="papi-ai-grade" class="admin-input"><option>1º Primaria</option><option>2º Primaria</option><option>3º Primaria</option><option>4º Primaria</option><option>5º Primaria</option><option>6º Primaria</option></select></div>
                         </div>
-                        <input type="text" id="ai-topic" class="admin-input" placeholder="Tema (Ej: Fracciones, Los ecosistemas, El relieve de España...)">
-                        <button class="btn" style="width:100%; margin-top:1.5rem;" onclick="app.generateMission()">✨ Generar Misión</button>
-                        <div id="ai-debug-log" style="margin-top: 1rem; font-size: 0.7rem; font-family: monospace; color: #00ff00; background: rgba(0,0,0,0.8); padding: 0.8rem; border-radius: 12px; display:none; border: 1px solid var(--primary);"></div>
+                        <input type="text" id="papi-ai-topic" class="admin-input" placeholder="Tema (Ej: Las fracciones, Los ecosistemas, El relieve...)">
+                        <button class="btn" style="width:100%; margin-top:1.5rem;" onclick="app.generateMissionFromPapi()">🚀 Generar Misión</button>
+                        <div id="papi-ai-debug-log" style="margin-top: 1rem; font-size: 0.7rem; font-family: monospace; color: #00ff00; background: rgba(0,0,0,0.8); padding: 0.8rem; border-radius: 12px; display:none; border: 1px solid var(--primary);"></div>
                     </div>
 
+                    <!-- Lista de Misiones de la Alumna -->
                     <div class="glass-card">
-                        <h3>Misiones Creadas en la Plataforma</h3>
-                        <div id="admin-missions-list" style="display:flex; flex-direction:column; gap:0.5rem; margin-top:1rem;"></div>
+                        <h3>📚 Misiones Creadas para esta Alumna</h3>
+                        <div id="papi-missions-list" style="display:flex; flex-direction:column; gap:0.5rem; margin-top:1rem;"></div>
                     </div>
+                </div>
+
+                <!-- Subsección 2: Diagnóstico y Fallos de su hija -->
+                <div id="papi-sub-diagnosis" style="display:none; flex-direction:column; gap:1.5rem;">
+                    <div class="glass-card">
+                        <h3 style="color:#fca5a5; margin-bottom:0.5rem;">🎯 Conceptos o Fallos para Reforzar Juntos</h3>
+                        <p style="opacity:0.7; font-size:0.85rem; margin-bottom:1rem;">Registro de operaciones matemáticas o preguntas falladas para repasar:</p>
+                        <div id="papi-fails-list" style="display:flex; flex-direction:column; gap:0.6rem;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONSOLA CENTRAL DE SUPER-ADMINISTRADOR (BACKOFFICE) -->
+        <div id="screen-superadmin" class="screen" style="max-width:1100px; margin:0 auto; padding:1.5rem 1rem;">
+            <!-- Header Superadmin -->
+            <div class="glass-card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; padding:1.5rem 2rem; margin-bottom:1.5rem; border:1px solid rgba(139,92,246,0.3);">
+                <div style="display:flex; align-items:center; gap:1rem;">
+                    <span style="font-size:2.8rem;">🏛️</span>
+                    <div>
+                        <div style="display:flex; align-items:center; gap:0.6rem;">
+                            <h2 style="font-size:1.8rem; font-weight:800; background:linear-gradient(to right, #a78bfa, #f472b6); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin:0;">Consola de Super-Administrador</h2>
+                            <span style="background:rgba(236,72,153,0.2); color:#f472b6; font-size:0.7rem; font-weight:800; padding:0.2rem 0.6rem; border-radius:6px;">MASTER BACKOFFICE</span>
+                        </div>
+                        <p style="opacity:0.7; font-size:0.85rem; margin-top:0.2rem;">Gestión global de alumnas, contraseñas, auditoría de retos y catálogo central</p>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:0.8rem;">
+                    <button class="btn" style="padding:0.5rem 1rem; font-size:0.8rem; background:rgba(255,255,255,0.08);" onclick="app.loadAdminStudents()"><i data-lucide="refresh-cw"></i> Actualizar</button>
+                    <button class="btn" style="padding:0.5rem 1rem; font-size:0.8rem; background:rgba(239,68,68,0.2); color:#fca5a5; border:1px solid rgba(239,68,68,0.4);" onclick="app.logout()">🚪 Cerrar Sesión</button>
+                </div>
+            </div>
+
+            <!-- Navegación de Pestañas Superadmin -->
+            <div style="display:flex; gap:0.6rem; background:rgba(0,0,0,0.3); padding:0.4rem; border-radius:18px; max-width:800px; margin-bottom:1.5rem; overflow-x:auto;">
+                <div class="segment active" id="tab-super-students" onclick="app.switchSuperTab('students')">👥 Alumnas y Cuentas</div>
+                <div class="segment" id="tab-super-battles" onclick="app.switchSuperTab('battles')">⚔️ Auditoría de Retos</div>
+                <div class="segment" id="tab-super-missions" onclick="app.switchSuperTab('missions')">🎯 Catálogo Global</div>
+                <div class="segment" id="tab-super-security" onclick="app.switchSuperTab('security')">🔐 Seguridad Admin</div>
+            </div>
+
+            <!-- 1. GESTIÓN GLOBAL DE ALUMNAS -->
+            <div id="super-sub-students" style="display:flex; flex-direction:column; gap:1.5rem;">
+                <!-- KPIs -->
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:1rem;">
+                    <div class="glass-card" style="padding:1.2rem; text-align:center;">
+                        <div style="font-size:0.8rem; opacity:0.6;">Alumnas Registradas</div>
+                        <div id="kpi-super-total-students" style="font-size:2.2rem; font-weight:800; color:var(--primary);">0</div>
+                    </div>
+                    <div class="glass-card" style="padding:1.2rem; text-align:center;">
+                        <div style="font-size:0.8rem; opacity:0.6;">XP Total Generado</div>
+                        <div id="kpi-super-total-xp" style="font-size:2.2rem; font-weight:800; color:#fbbf24;">0</div>
+                    </div>
+                    <div class="glass-card" style="padding:1.2rem; text-align:center;">
+                        <div style="font-size:0.8rem; opacity:0.6;">Alumna Líder</div>
+                        <div id="kpi-super-leader" style="font-size:1.3rem; font-weight:800; color:#38bdf8; margin-top:0.4rem;">-</div>
+                    </div>
+                </div>
+
+                <!-- Ficha Alumna Seleccionada -->
+                <div class="glass-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
+                        <div>
+                            <h3>Ficha y Control de Alumna</h3>
+                            <p style="opacity:0.7; font-size:0.85rem;">Consulta contraseñas, resetea claves, edita XP o supervisa:</p>
+                        </div>
+                        <select id="super-student-select" class="arcade-input" style="font-size:1rem; padding:0.6rem 1rem; width:auto; min-width:240px;" onchange="app.renderAdminStudentDetail(this.value)">
+                            <option value="">Cargando alumnas...</option>
+                        </select>
+                    </div>
+
+                    <div id="super-student-card" style="display:none; background:rgba(255,255,255,0.02); border:1px solid var(--glass-border); border-radius:20px; padding:1.5rem;">
+                        <!-- Inyectado dinámicamente -->
+                    </div>
+                </div>
+
+                <!-- Listado Completo -->
+                <div class="glass-card">
+                    <h4 style="margin-bottom:1rem;">Lista de Alumnas en la Base de Datos</h4>
+                    <div id="super-all-students-list" style="display:flex; flex-direction:column; gap:0.6rem;"></div>
+                </div>
+            </div>
+
+            <!-- 2. AUDITORÍA DE RETOS Y BATALLAS -->
+            <div id="super-sub-battles" style="display:none; flex-direction:column; gap:1.5rem;">
+                <div class="glass-card">
+                    <h3 style="margin-bottom:0.5rem;">⚔️ Monitor de Partidas entre Alumnas</h3>
+                    <p style="opacity:0.7; font-size:0.85rem; margin-bottom:1.5rem;">Registro de todos los desafíos de cálculo jugados en red:</p>
+                    <div id="super-battles-list" style="display:flex; flex-direction:column; gap:0.8rem;"></div>
+                </div>
+            </div>
+
+            <!-- 3. CATÁLOGO GLOBAL DE MISIONES -->
+            <div id="super-sub-missions" style="display:none; flex-direction:column; gap:1.5rem;">
+                <div class="glass-card">
+                    <h3>Generador de Misiones Globales</h3>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin:1rem 0;">
+                        <div><label>Asignatura</label><select id="super-ai-subject" class="admin-input"><option>Matemáticas</option><option>Lengua</option><option>Sociales</option><option>Inglés</option></select></div>
+                        <div><label>Curso</label><select id="super-ai-grade" class="admin-input"><option>1º Primaria</option><option>2º Primaria</option><option>3º Primaria</option><option>4º Primaria</option><option>5º Primaria</option><option>6º Primaria</option></select></div>
+                    </div>
+                    <input type="text" id="super-ai-topic" class="admin-input" placeholder="Tema (Ej: Fracciones, El sistema solar...)">
+                    <button class="btn" style="width:100%; margin-top:1.5rem;" onclick="app.generateMissionFromSuper()">✨ Generar Misión</button>
+                    <div id="super-ai-debug-log" style="margin-top: 1rem; font-size: 0.7rem; font-family: monospace; color: #00ff00; background: rgba(0,0,0,0.8); padding: 0.8rem; border-radius: 12px; display:none; border: 1px solid var(--primary);"></div>
+                </div>
+                <div class="glass-card">
+                    <h3>Misiones Disponibles en la Plataforma</h3>
+                    <div id="super-missions-list" style="display:flex; flex-direction:column; gap:0.5rem; margin-top:1rem;"></div>
+                </div>
+            </div>
+
+            <!-- 4. SEGURIDAD ADMIN -->
+            <div id="super-sub-security" style="display:none; flex-direction:column; gap:1.5rem;">
+                <div class="glass-card">
+                    <h3 style="margin-bottom:0.5rem;">🔐 Contraseña de la Cuenta de Administrador</h3>
+                    <p style="opacity:0.7; font-size:0.85rem; margin-bottom:1.2rem;">Cambia la contraseña maestra de tu usuario 'admin' (actualmente 'admin1234'):</p>
+                    <div style="display:flex; gap:1rem; max-width:500px;">
+                        <input type="password" id="super-admin-new-pass" class="arcade-input" style="font-size:1.1rem; padding:0.7rem; flex:1;" placeholder="Nueva contraseña segura...">
+                        <button class="btn" style="padding:0 1.5rem;" onclick="app.adminChangeOwnPassword()">Guardar</button>
+                    </div>
+                    <p id="super-admin-pass-change-msg" style="font-size:0.85rem; margin-top:0.8rem; font-weight:700;"></p>
                 </div>
             </div>
         </div>
@@ -2310,8 +2371,285 @@
                 }
             },
 
-            // --- PANEL DE CONTROL MAESTRO (SUPERVISIÓN GLOBAL) ---
-            currentAdminTab: 'students',
+            // --- MODO PAPI (CONTROL PARENTAL DE CADA ALUMNA) ---
+            renderPapi() {
+                const studentName = this.cloudUser ? this.cloudUser.username : (this.data.active || 'tu hija');
+                const sn = document.getElementById('papi-student-name'); if(sn) sn.textContent = studentName;
+                const tsn = document.getElementById('papi-title-student-name'); if(tsn) tsn.textContent = studentName;
+                const subGr = document.getElementById('papi-ai-grade');
+                if(subGr && this.curr && this.curr.grade) subGr.value = this.curr.grade;
+                const keyInput = document.getElementById('papi-api-key');
+                if(keyInput) keyInput.value = this.getPapiApiKey();
+            },
+
+            checkPapiPin() {
+                const pin = document.getElementById('papi-pass-input').value.trim();
+                const msg = document.getElementById('papi-pin-msg');
+                if(pin === '1234' || pin === '7410') {
+                    if(msg) msg.style.display = 'none';
+                    document.getElementById('papi-login-box').style.display = 'none';
+                    document.getElementById('papi-main-panel').style.display = 'flex';
+                    this.switchPapiTab('ai');
+                    this.renderPapi();
+                    this.renderPapiMissions();
+                    this.renderPapiFails();
+                } else {
+                    if(msg) {
+                        msg.textContent = "❌ PIN Incorrecto. Introduce 1234 o 7410.";
+                        msg.style.display = 'block';
+                    }
+                }
+            },
+
+            lockPapi() {
+                document.getElementById('papi-main-panel').style.display = 'none';
+                document.getElementById('papi-login-box').style.display = 'block';
+                const inp = document.getElementById('papi-pass-input'); if(inp) inp.value = '';
+                this.switchScreen('home', document.querySelector('[data-lucide="home"]').parentElement);
+            },
+
+            switchPapiTab(tab) {
+                const ta = document.getElementById('tab-papi-ai');
+                const td = document.getElementById('tab-papi-diagnosis');
+                if(ta) ta.classList.toggle('active', tab === 'ai');
+                if(td) td.classList.toggle('active', tab === 'diagnosis');
+
+                const sa = document.getElementById('papi-sub-ai');
+                const sd = document.getElementById('papi-sub-diagnosis');
+                if(sa) sa.style.display = tab === 'ai' ? 'flex' : 'none';
+                if(sd) sd.style.display = tab === 'diagnosis' ? 'flex' : 'none';
+
+                if(tab === 'ai') {
+                    this.renderPapiMissions();
+                } else {
+                    this.renderPapiFails();
+                }
+            },
+
+            getPapiApiKey() {
+                if(!this.cloudUser) return this.data.settings.apiKey || '';
+                return localStorage.getItem('lara_ai_key_' + this.cloudUser.username) || this.data.settings.apiKey || '';
+            },
+
+            savePapiApiKey() {
+                const key = document.getElementById('papi-api-key').value.trim();
+                if(this.cloudUser) {
+                    localStorage.setItem('lara_ai_key_' + this.cloudUser.username, key);
+                }
+                this.data.settings.apiKey = key;
+                this.save();
+                this.notify("🔑 Clave Guardada", "Clave de Gemini guardada para el perfil de " + (this.cloudUser ? this.cloudUser.username : 'esta alumna'));
+            },
+
+            async testPapiApiKey() {
+                const key = this.getPapiApiKey();
+                const resText = document.getElementById('papi-api-test-result');
+                const dot = document.getElementById('papi-ai-status-dot');
+                if(!key) {
+                    if(resText) { resText.textContent = "❌ No hay clave guardada."; resText.style.color = "var(--error)"; }
+                    return;
+                }
+                if(resText) { resText.textContent = "⏳ Verificando con Google Gemini..."; resText.style.color = "var(--primary)"; }
+                const models = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-3.1-flash-lite", "gemini-pro-latest"];
+                let success = false;
+                let lastErr = "";
+                for(const model of models) {
+                    try {
+                        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ contents: [{ parts: [{ text: "Di 'OK'" }] }] })
+                        });
+                        const d = await res.json();
+                        if(d.candidates) {
+                            if(resText) { resText.textContent = `✅ ¡Conexión exitosa con Gemini! (Modelo: ${model})`; resText.style.color = "var(--success)"; }
+                            if(dot) { dot.style.background = 'var(--success)'; dot.style.boxShadow = '0 0 10px var(--success)'; }
+                            success = true;
+                            break;
+                        } else if(d.error) {
+                            lastErr = d.error.message;
+                        }
+                    } catch(e) {
+                        lastErr = "Error de red o conexión.";
+                    }
+                }
+                if(!success && resText) {
+                    resText.textContent = `❌ Error: ${lastErr}`;
+                    resText.style.color = "var(--error)";
+                    if(dot) { dot.style.background = 'var(--error)'; dot.style.boxShadow = '0 0 10px var(--error)'; }
+                }
+            },
+
+            renderPapiFails() {
+                const list = document.getElementById('papi-fails-list');
+                if(!list) return;
+                let fails = [];
+                if(this.curr && this.curr.fails) fails = this.curr.fails;
+                if(fails.length === 0) {
+                    list.innerHTML = '<div style="opacity:0.6; padding:1.5rem; text-align:center;">🎉 ¡Sin fallos registrados! Tu hija está respondiendo con gran precisión.</div>';
+                    return;
+                }
+                let html = '';
+                fails.slice(-10).reverse().forEach(f => {
+                    html += `
+                        <div style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); border-radius:12px; padding:0.8rem 1.2rem; display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <span style="font-weight:700; color:white;">⚠️ ${f.q || f.op || 'Operación'}</span>
+                            </div>
+                            <div style="font-size:0.85rem; color:#fca5a5;">
+                                Respondió: <strong>${f.ans || '?'}</strong> (Correcto: <strong style="color:#34d399;">${f.expected || '?'}</strong>)
+                            </div>
+                        </div>
+                    `;
+                });
+                list.innerHTML = html;
+            },
+
+            renderPapiMissions() {
+                const ml = document.getElementById('papi-missions-list');
+                if(!ml) return;
+                ml.innerHTML = '';
+                const missions = Object.keys(this.data.missions);
+                if(missions.length === 0) {
+                    ml.innerHTML = '<p style="opacity:0.4; font-size:0.8rem; text-align:center;">No hay misiones creadas aún.</p>';
+                    return;
+                }
+                missions.forEach(n => {
+                    const d = document.createElement('div');
+                    d.style = 'display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.05); padding:1rem; border-radius:16px; border:1px solid rgba(255,255,255,0.05);';
+                    d.innerHTML = `<div><strong style="display:block;">${n}</strong><small style="opacity:0.5;">${this.data.missions[n].subject || 'General'} · ${this.data.missions[n].grade || ''}</small></div>
+                    <button class="btn" style="background:var(--error); font-size:0.7rem; padding:0.4rem 0.8rem;" onclick="app.deleteMission('${n}')">Borrar</button>`;
+                    ml.appendChild(d);
+                });
+            },
+
+            async generateMissionFromPapi() {
+                const sub = document.getElementById('papi-ai-subject').value;
+                const gr = document.getElementById('papi-ai-grade').value;
+                const top = document.getElementById('papi-ai-topic').value.trim();
+                const log = document.getElementById('papi-ai-debug-log');
+                if(!top) { this.notify("⚠️ Falta el tema", "Escribe el tema de la misión."); return; }
+                await this.executeMissionGeneration(sub, gr, top, log, () => this.renderPapiMissions());
+            },
+
+            async generateMissionFromSuper() {
+                const sub = document.getElementById('super-ai-subject').value;
+                const gr = document.getElementById('super-ai-grade').value;
+                const top = document.getElementById('super-ai-topic').value.trim();
+                const log = document.getElementById('super-ai-debug-log');
+                if(!top) { this.notify("⚠️ Falta el tema", "Escribe el tema de la misión."); return; }
+                await this.executeMissionGeneration(sub, gr, top, log, () => this.renderSuperMissions());
+            },
+
+            renderSuperMissions() {
+                const ml = document.getElementById('super-missions-list');
+                if(!ml) return;
+                ml.innerHTML = '';
+                const missions = Object.keys(this.data.missions);
+                if(missions.length === 0) {
+                    ml.innerHTML = '<p style="opacity:0.4; font-size:0.8rem; text-align:center;">No hay misiones creadas en la plataforma.</p>';
+                    return;
+                }
+                missions.forEach(n => {
+                    const d = document.createElement('div');
+                    d.style = 'display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.05); padding:1rem; border-radius:16px; border:1px solid rgba(255,255,255,0.05);';
+                    d.innerHTML = `<div><strong style="display:block;">${n}</strong><small style="opacity:0.5;">${this.data.missions[n].subject || 'General'} · ${this.data.missions[n].grade || ''}</small></div>
+                    <button class="btn" style="background:var(--error); font-size:0.7rem; padding:0.4rem 0.8rem;" onclick="app.deleteMission('${n}')">Borrar</button>`;
+                    ml.appendChild(d);
+                });
+            },
+
+            async executeMissionGeneration(sub, gr, t, log, onComplete) {
+                if(!t) return;
+                const key = this.getPapiApiKey();
+                if(!key) {
+                    this.notify("🛑 Clave Requerida", "Debes guardar tu clave de Google Gemini para generar misiones personalizadas.");
+                    return;
+                }
+                if(log) { log.style.display = 'block'; log.textContent = "> Iniciando generación con Gemini..."; }
+                this.notify("🤖 Procesando...", `Creando misión sobre ${t}`);
+                
+                let content = [];
+                let source = 'ai';
+                const studentName = this.data.active || 'Lara';
+                const studentGrade = gr || (this.curr ? this.curr.grade : '5º Primaria');
+
+                try {
+                    const prompt = `Actúa como un tutor personal experto, claro y motivador. 
+                    Tu alumno se llama ${studentName} y está en ${studentGrade}. 
+                    Crea una misión de aprendizaje sobre: "${t}" (${sub}).
+                    
+                    REGLAS DE TONO:
+                    - Dirígete a ${studentName} de forma directa y cercana.
+                    - El nivel de dificultad, vocabulario y conceptos deben ser PERFECTOS para un alumno de ${studentGrade}.
+                    - Usa un lenguaje EMOCIONANTE, CLARO y LLENO DE CURIOSIDADES.
+                    - Relaciona el contenido con MARAVILLAS DEL MUNDO, NATURALEZA, INVENTOS o HISTORIA REAL.
+                    
+                    Estructura JSON requerida:
+                    {
+                      "data": [
+                        { "type": "theory", "title": "¡Comienza la Exploración!", "content": "Una explicación fascinante...", "imageQuery": "english search term for realistic photo" },
+                        { "type": "quiz", "question": "¿...?", "options": ["A", "B", "C", "D"], "answer": "A" },
+                        { "type": "steps", "title": "Pasos", "steps": ["1", "2"] },
+                        { "type": "flashcard", "q": "...", "a": "..." },
+                        { "type": "fill_blank", "sentence": "La Tierra gira alrededor del [Sol].", "options": ["Sol", "Marte", "Luna"], "answer": "Sol" }
+                      ]
+                    }
+                    Reglas Técnicas:
+                    - Genera entre 8 y 10 elementos variados.
+                    - El tipo 'fill_blank' debe incluir una frase corta ('sentence') donde la palabra respuesta esté entre corchetes, ej: 'La capital de Francia es [París].'.
+                    - Devuelve SOLO el JSON puro.`;
+
+                    const models = ["gemini-flash-latest", "gemini-1.5-flash", "gemini-2.5-flash", "gemini-3.1-flash-lite", "gemini-2.0-flash"];
+                    let responseData = null;
+
+                    for (const model of models) {
+                        try {
+                            if(log) log.textContent += `\n> Intentando con ${model}...`;
+                            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, { 
+                                method: "POST", 
+                                headers: { "Content-Type": "application/json" }, 
+                                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) 
+                            });
+                            const d = await res.json();
+                            if (d.candidates && d.candidates[0]) {
+                                responseData = d;
+                                if(log) log.textContent += `\n> ✅ ${model} respondió con éxito.`;
+                                break;
+                            }
+                        } catch(err) {}
+                    }
+
+                    if (responseData) {
+                        let text = responseData.candidates[0].content.parts[0].text;
+                        const start = text.indexOf('{');
+                        const end = text.lastIndexOf('}');
+                        if (start !== -1 && end !== -1) {
+                            text = text.substring(start, end + 1).replace(/[\u0000-\u001F\u007F-\u009F]/g, ""); 
+                            const parsed = JSON.parse(text);
+                            if(parsed.data && Array.isArray(parsed.data)) {
+                                content = parsed.data;
+                            }
+                        }
+                    }
+                } catch(e) {
+                    if(log) log.textContent += `\n> ❌ Error: ${e.message}`;
+                }
+
+                if(content.length > 0) {
+                    this.data.missions[t] = { subject: sub, grade: gr, data: content, name: t, source: source }; 
+                    this.save();
+                    this.notify("✨ Misión Creada", t); 
+                    if(onComplete) onComplete();
+                    setTimeout(() => { if(log) log.style.display = 'none'; }, 3000);
+                } else {
+                    this.notify("❌ Error de Generación", "No se pudo generar la misión con la IA. Revisa tu Clave API o conexión.");
+                    setTimeout(() => { if(log) log.style.display = 'none'; }, 5000);
+                }
+            },
+
+            // --- SUPER-ADMINISTRADOR (BACKOFFICE CENTRAL DE LA PLATAFORMA) ---
+            currentSuperTab: 'students',
             adminStudentsList: [],
             originalAdminSession: null,
             impersonating: false,
@@ -2319,70 +2657,60 @@
 
             setupAdminInterface() {
                 this.isAdmin = true;
-                const navAdmin = document.getElementById('nav-item-admin');
-                if(navAdmin) navAdmin.style.display = 'flex';
-                const sbUser = document.getElementById('sidebar-user-name');
-                if(sbUser) sbUser.textContent = "Admin";
-                const avEl = document.getElementById('sidebar-user-avatar');
-                if(avEl) avEl.textContent = '👨‍🏫';
-                document.getElementById('main-header').style.visibility = 'visible';
-                document.getElementById('sidebar').style.display = 'flex';
+                const sidebar = document.getElementById('sidebar');
+                if(sidebar) sidebar.style.display = 'none';
+                const header = document.getElementById('main-header');
+                if(header) { header.style.display = 'none'; header.style.visibility = 'hidden'; }
 
-                const sc = document.getElementById('header-streak-count');
-                const sh = document.getElementById('header-shield-count');
-                if(sc) sc.textContent = '👑';
-                if(sh) sh.textContent = '∞';
+                document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+                const sa = document.getElementById('screen-superadmin');
+                if(sa) sa.classList.add('active');
 
-                const keyInput = document.getElementById('admin-api-key');
-                if(keyInput) keyInput.value = this.getApiKey();
-
-                this.switchAdminTab(this.currentAdminTab || 'students');
+                this.switchSuperTab(this.currentSuperTab || 'students');
             },
 
             setupStudentInterface() {
                 this.isAdmin = false;
-                if(!this.impersonating) {
-                    const navAdmin = document.getElementById('nav-item-admin');
-                    if(navAdmin) navAdmin.style.display = 'none';
-                }
-                document.getElementById('main-header').style.visibility = 'visible';
-                document.getElementById('sidebar').style.display = 'flex';
+                const sidebar = document.getElementById('sidebar');
+                if(sidebar) sidebar.style.display = 'flex';
+                const header = document.getElementById('main-header');
+                if(header) { header.style.display = 'flex'; header.style.visibility = 'visible'; }
             },
 
-            switchAdminTab(tab) {
-                this.currentAdminTab = tab;
-                const ts = document.getElementById('tab-admin-students');
-                const tsec = document.getElementById('tab-admin-security');
-                const tb = document.getElementById('tab-admin-battles');
-                const tm = document.getElementById('tab-admin-missions');
+            switchSuperTab(tab) {
+                this.currentSuperTab = tab;
+                const ts = document.getElementById('tab-super-students');
+                const tb = document.getElementById('tab-super-battles');
+                const tm = document.getElementById('tab-super-missions');
+                const tsec = document.getElementById('tab-super-security');
+
                 if(ts) ts.classList.toggle('active', tab === 'students');
-                if(tsec) tsec.classList.toggle('active', tab === 'security');
                 if(tb) tb.classList.toggle('active', tab === 'battles');
                 if(tm) tm.classList.toggle('active', tab === 'missions');
+                if(tsec) tsec.classList.toggle('active', tab === 'security');
 
-                const as = document.getElementById('admin-sub-students');
-                const asec = document.getElementById('admin-sub-security');
-                const ab = document.getElementById('admin-sub-battles');
-                const am = document.getElementById('admin-sub-missions');
-                if(as) as.style.display = tab === 'students' ? 'flex' : 'none';
-                if(asec) asec.style.display = tab === 'security' ? 'flex' : 'none';
-                if(ab) ab.style.display = tab === 'battles' ? 'flex' : 'none';
-                if(am) am.style.display = tab === 'missions' ? 'flex' : 'none';
+                const ss = document.getElementById('super-sub-students');
+                const sb = document.getElementById('super-sub-battles');
+                const sm = document.getElementById('super-sub-missions');
+                const ssec = document.getElementById('super-sub-security');
+
+                if(ss) ss.style.display = tab === 'students' ? 'flex' : 'none';
+                if(sb) sb.style.display = tab === 'battles' ? 'flex' : 'none';
+                if(sm) sm.style.display = tab === 'missions' ? 'flex' : 'none';
+                if(ssec) ssec.style.display = tab === 'security' ? 'flex' : 'none';
 
                 if(tab === 'students') this.loadAdminStudents();
+                if(tab === 'battles') this.loadAdminBattles();
+                if(tab === 'missions') this.renderSuperMissions();
                 if(tab === 'security') {
-                    const keyInput = document.getElementById('admin-api-key');
-                    if(keyInput) keyInput.value = this.getApiKey();
-                    const msg = document.getElementById('admin-pass-change-msg');
+                    const msg = document.getElementById('super-admin-pass-change-msg');
                     if(msg) msg.textContent = '';
                 }
-                if(tab === 'battles') this.loadAdminBattles();
-                if(tab === 'missions') this.renderAdminMissions();
             },
 
             async loadAdminStudents() {
-                const select = document.getElementById('admin-student-select');
-                const listEl = document.getElementById('admin-all-students-list');
+                const select = document.getElementById('super-student-select');
+                const listEl = document.getElementById('super-all-students-list');
                 if(!select || !listEl) return;
 
                 select.innerHTML = '<option value="">Cargando alumnas...</option>';
@@ -2406,9 +2734,9 @@
                     const totalXP = nonAdmins.reduce((acc, cur) => acc + (cur.xp || 0), 0);
                     const leader = nonAdmins.length > 0 ? nonAdmins[0] : null;
 
-                    const kpiStudents = document.getElementById('kpi-admin-total-students');
-                    const kpiXP = document.getElementById('kpi-admin-total-xp');
-                    const kpiLeader = document.getElementById('kpi-admin-leader');
+                    const kpiStudents = document.getElementById('kpi-super-total-students');
+                    const kpiXP = document.getElementById('kpi-super-total-xp');
+                    const kpiLeader = document.getElementById('kpi-super-leader');
 
                     if(kpiStudents) kpiStudents.textContent = nonAdmins.length;
                     if(kpiXP) kpiXP.textContent = totalXP.toLocaleString();
@@ -2421,7 +2749,7 @@
                     students.forEach(s => {
                         const isAdminRow = s.role === 'admin' || s.username.toLowerCase() === 'admin';
                         html += `
-                            <div class="social-user-row" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; padding:1rem;" onclick="document.getElementById('admin-student-select').value='${s.id}'; app.renderAdminStudentDetail('${s.id}')">
+                            <div class="social-user-row" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; padding:1rem;" onclick="document.getElementById('super-student-select').value='${s.id}'; app.renderAdminStudentDetail('${s.id}')">
                                 <div style="display:flex; align-items:center; gap:1rem;">
                                     <span style="font-size:2rem;">${s.avatar || '👧'}</span>
                                     <div>
@@ -2460,7 +2788,7 @@
             },
 
             renderAdminStudentDetail(studentId) {
-                const card = document.getElementById('admin-student-card');
+                const card = document.getElementById('super-student-card');
                 if(!card) return;
                 if(!studentId || !this.adminStudentsList) {
                     card.style.display = 'none';
@@ -2611,8 +2939,8 @@
             },
 
             async adminChangeOwnPassword() {
-                const newPassInput = document.getElementById('admin-new-pass');
-                const msgEl = document.getElementById('admin-pass-change-msg');
+                const newPassInput = document.getElementById('super-admin-new-pass');
+                const msgEl = document.getElementById('super-admin-pass-change-msg');
                 if(!newPassInput) return;
                 const newPass = newPassInput.value.trim();
                 if(newPass.length < 4) {
@@ -2660,6 +2988,8 @@
                 const nameEl = document.getElementById('impersonated-student-name');
                 if(nameEl) nameEl.textContent = `${student.avatar || '👧'} ${student.username}`;
 
+                // Show student sidebar & header
+                this.setupStudentInterface();
                 await this.syncAndLoadCloudUser(student.id, true);
                 this.notify("👀 Modo Supervisión", `Ahora estás viendo la app como ${student.username}.`);
             },
@@ -2674,12 +3004,11 @@
                     this.originalAdminSession = null;
                 }
                 this.setupAdminInterface();
-                this.switchScreen('admin', document.getElementById('nav-item-admin'));
-                this.notify("🏛️ Panel Maestro", "Has vuelto al modo administrador.");
+                this.notify("🏛️ Consola Admin", "Has vuelto al modo administrador.");
             },
 
             async loadAdminBattles() {
-                const list = document.getElementById('admin-battles-list');
+                const list = document.getElementById('super-battles-list');
                 if(!list) return;
                 list.innerHTML = '<div class="loader"></div>';
                 try {
@@ -2723,32 +3052,6 @@
                 }
             },
 
-            renderAdminMissions() {
-                const ml = document.getElementById('admin-missions-list');
-                if(!ml) return;
-                ml.innerHTML = '';
-                const missions = Object.keys(this.data.missions);
-                if(missions.length === 0) {
-                    ml.innerHTML = '<p style="opacity:0.4; font-size:0.8rem; text-align:center;">No hay misiones creadas.</p>';
-                    return;
-                }
-                missions.forEach(n => {
-                    const d = document.createElement('div');
-                    d.style = 'display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.05); padding:1rem; border-radius:16px; border:1px solid rgba(255,255,255,0.05);';
-                    d.innerHTML = `<div><strong style="display:block;">${n}</strong><small style="opacity:0.5;">${this.data.missions[n].subject || 'General'}</small></div>
-                    <button class="btn" style="background:var(--error); font-size:0.7rem; padding:0.4rem 0.8rem;" onclick="app.deleteMission('${n}')">Borrar</button>`;
-                    ml.appendChild(d);
-                });
-            },
-
-            updateAiStatus(ok) {
-                const dot = document.getElementById('ai-status-dot');
-                if(dot) {
-                    dot.style.background = ok ? 'var(--success)' : 'var(--error)';
-                    dot.style.boxShadow = `0 0 10px ${ok ? 'var(--success)' : 'var(--error)'}`;
-                }
-            },
-
             save() { localStorage.setItem('lara_excellence_v10', JSON.stringify(this.data)); },
 
             switchScreen(id, el) {
@@ -2766,7 +3069,8 @@
                 if(id==='study') this.renderLibrary();
                 if(id==='social') this.renderSocial();
                 if(id==='stats') this.renderStats();
-                if(id==='admin') this.renderAdmin();
+                if(id==='papi') this.renderPapi();
+                if(id==='superadmin') this.setupAdminInterface();
             },
 
             showUserSelection() { 
@@ -2904,9 +3208,8 @@
 
                     const isAdmin = (profile.role === 'admin' || profile.username.toLowerCase() === 'admin');
                     if(isAdmin) {
-                        this.notify("👨‍🏫 Modo Administrador", "Bienvenido al Panel Maestro.");
+                        this.notify("👨‍🏫 Modo Administrador", "Bienvenido a la Consola Central.");
                         this.setupAdminInterface();
-                        this.switchScreen('admin', document.getElementById('nav-item-admin'));
                     } else {
                         this.notify("👋 ¡Hola de nuevo!", `Bienvenida, ${profile.username}.`);
                         await this.syncAndLoadCloudUser(profile.id);
@@ -2948,7 +3251,6 @@
                             this.cloudUser = profile;
                             localStorage.setItem('lara_cloud_session', JSON.stringify(profile));
                             this.setupAdminInterface();
-                            this.switchScreen('admin', document.getElementById('nav-item-admin'));
                             return;
                         }
 
