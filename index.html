@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --primary: #8b5cf6; --secondary: #ec4899; --accent: #06b6d4; --bg-dark: #070b14; --text-light: #f8fafc;
@@ -146,6 +147,79 @@
             0%, 100% { transform: rotateY(180deg) scale(1); }
             50% { transform: rotateY(180deg) scale(1.08); }
         }
+
+        /* Estilos Duolingo Social & Auth */
+        .avatar-option {
+            font-size: 1.8rem;
+            padding: 0.5rem;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.04);
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+        .avatar-option:hover { background: rgba(255,255,255,0.1); transform: scale(1.1); }
+        .avatar-option.active { border-color: var(--primary); background: rgba(139, 92, 246, 0.25); box-shadow: 0 0 15px rgba(139, 92, 246, 0.4); }
+
+        .podium-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 1.2rem;
+            margin: 1.5rem 0 2rem 0;
+            padding-bottom: 0.5rem;
+        }
+        .podium-slot {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            flex: 1;
+            max-width: 140px;
+        }
+        .podium-box {
+            width: 100%;
+            border-radius: 20px 20px 0 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.2rem 0.5rem;
+            font-weight: 800;
+        }
+        .podium-1 .podium-box { height: 140px; background: linear-gradient(to top, rgba(251, 191, 36, 0.3), rgba(251, 191, 36, 0.08)); border: 2px solid #fbbf24; box-shadow: 0 0 25px rgba(251, 191, 36, 0.2); }
+        .podium-2 .podium-box { height: 110px; background: linear-gradient(to top, rgba(203, 213, 225, 0.25), rgba(203, 213, 225, 0.05)); border: 2px solid #cbd5e1; }
+        .podium-3 .podium-box { height: 85px; background: linear-gradient(to top, rgba(217, 119, 6, 0.25), rgba(217, 119, 6, 0.05)); border: 2px solid #d97706; }
+
+        .social-user-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.8rem 1.2rem;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            transition: 0.2s;
+        }
+        .social-user-row:hover { background: rgba(255, 255, 255, 0.07); transform: translateX(4px); }
+        .social-user-row.is-me { border-color: var(--primary); background: rgba(139, 92, 246, 0.12); }
+
+        .challenge-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 18px;
+            padding: 1rem 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            transition: 0.2s;
+        }
+        .challenge-card:hover { border-color: var(--secondary); background: rgba(236, 72, 153, 0.05); }
 
         /* New Premium Progress Dashboard Styles */
         .kpi-grid {
@@ -525,26 +599,36 @@
             <div class="nav-item active" onclick="app.switchScreen('home', this)"><i data-lucide="home"></i> Inicio</div>
             <div class="nav-item" onclick="app.switchScreen('arcade', this)"><i data-lucide="zap"></i> Aprendo Jugando</div>
             <div class="nav-item" onclick="app.switchScreen('study', this)"><i data-lucide="book-open"></i> Estudio</div>
+            <div class="nav-item" onclick="app.switchScreen('social', this)"><i data-lucide="users"></i> Amigas 🔥</div>
             <div class="nav-item" onclick="app.switchScreen('stats', this)"><i data-lucide="bar-chart-3"></i> Progreso</div>
             <div class="nav-item" onclick="app.switchScreen('admin', this)"><i data-lucide="shield-check"></i> Modo Papi</div>
         </nav>
         <div style="margin-top: auto; padding: 1rem; background: var(--glass); border-radius: 20px; cursor:pointer;" onclick="app.showUserSelection()">
-            <p style="font-size: 0.6rem; opacity: 0.5; margin-bottom: 0.2rem;">Perfil</p>
-            <h4 id="sidebar-user-name">Lara</h4>
+            <p style="font-size: 0.6rem; opacity: 0.5; margin-bottom: 0.2rem;">Perfil Activo</p>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h4 id="sidebar-user-name">Lara</h4>
+                <span id="sidebar-user-avatar" style="font-size:1.3rem;">⚡</span>
+            </div>
+            <button class="btn" style="padding:0.3rem 0.6rem; font-size:0.65rem; margin-top:0.6rem; background:rgba(239,68,68,0.2); color:#fca5a5; border:1px solid rgba(239,68,68,0.3); width:100%;" onclick="event.stopPropagation(); app.logout()">Cerrar Sesión</button>
         </div>
     </aside>
 
     <main>
         <header id="main-header" style="visibility:hidden;">
             <div class="level-badge" id="header-level">1</div>
-            <div class="xp-container" style="flex-grow:1; margin:0 2rem;">
+            <div class="xp-container" style="flex-grow:1; margin:0 1.5rem;">
                 <div style="display:flex; justify-content:space-between; font-size: 0.7rem; font-weight:700;">
                     <span id="header-user-info" style="color:var(--primary);">Nombre | Curso</span>
                     <span id="header-xp-val">0 XP</span>
                 </div>
                 <div class="xp-bar-outer"><div class="xp-bar-inner" id="header-xp-bar"></div></div>
             </div>
-            <button class="nav-item" style="margin-bottom:0; background:rgba(255,255,255,0.05); padding:0.6rem;" onclick="app.showUserSelection()"><i data-lucide="users"></i></button>
+            <div id="header-streak-pill" style="display:flex; align-items:center; gap:0.5rem; background:rgba(251,191,36,0.12); border:1px solid rgba(251,191,36,0.3); padding:0.4rem 0.8rem; border-radius:14px; font-weight:800; font-size:0.85rem; color:#fbbf24; cursor:pointer; margin-right:0.8rem;" onclick="app.switchScreen('social', document.querySelector('[data-lucide=\'users\']').parentElement)" title="Ver Racha y Amigas">
+                <span>🔥</span> <span id="header-streak-count">0</span> 
+                <span style="opacity:0.3; margin:0 0.1rem;">|</span> 
+                <span>🧊</span> <span id="header-shield-count" style="color:#38bdf8;">1</span>
+            </div>
+            <button class="nav-item" style="margin-bottom:0; background:rgba(255,255,255,0.05); padding:0.6rem;" onclick="app.showUserSelection()"><i data-lucide="user"></i></button>
         </header>
 
         <!-- DASHBOARD -->
@@ -576,11 +660,147 @@
             </div>
         </div>
 
-        <!-- USUARIOS -->
-        <div id="screen-users" class="screen active">
-            <h1 style="text-align: center; font-size: 3rem; margin-bottom: 2rem; background: linear-gradient(to right, #a78bfa, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Lara Platform</h1>
-            <div id="user-selection-list" class="mission-grid"></div>
-            <button class="btn" style="margin: 2.5rem auto; background: transparent; border: 1px solid var(--glass-border);" onclick="app.modal('new-user')">+ Crear Nuevo Perfil</button>
+        <!-- USUARIOS / LOGIN Y REGISTRO EN LA NUBE -->
+        <div id="screen-users" class="screen active" style="align-items:center; justify-content:center; min-height:80vh;">
+            <div class="glass-card" style="width:100%; max-width:440px; padding:2.5rem 2rem; text-align:center;">
+                <div style="font-size:3.5rem; margin-bottom:0.5rem;">⚡</div>
+                <h1 style="font-size:2.2rem; margin-bottom:0.4rem; background:linear-gradient(to right, #a78bfa, #f472b6); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">Lara Platform</h1>
+                <p style="opacity:0.7; font-size:0.9rem; margin-bottom:1.5rem;">Aprende, sube de nivel y compite con tus amigas</p>
+                
+                <!-- Selector Modo: Iniciar Sesión / Nueva Cuenta -->
+                <div style="display:flex; background:rgba(0,0,0,0.3); padding:0.3rem; border-radius:14px; margin-bottom:1.5rem;">
+                    <div id="tab-auth-login" class="segment active" style="flex:1; text-align:center;" onclick="app.setAuthTab('login')">Entrar</div>
+                    <div id="tab-auth-register" class="segment" style="flex:1; text-align:center;" onclick="app.setAuthTab('register')">Crear Cuenta</div>
+                </div>
+
+                <!-- FORMULARIO LOGIN -->
+                <div id="form-auth-login">
+                    <input type="text" id="login-username" class="arcade-input" style="font-size:1.1rem; padding:0.8rem; width:100%; max-width:100%; margin-bottom:1rem;" placeholder="Tu Nombre de Usuario">
+                    <input type="password" id="login-password" class="arcade-input" style="font-size:1.1rem; padding:0.8rem; width:100%; max-width:100%; margin-bottom:1.5rem;" placeholder="Tu Contraseña o PIN" onkeyup="if(event.key==='Enter') app.handleLogin()">
+                    <button class="btn" style="width:100%;" onclick="app.handleLogin()">🚀 ¡Entrar a Jugar!</button>
+                    <div id="login-msg" style="margin-top:1rem; font-size:0.85rem; color:var(--error); display:none;"></div>
+                </div>
+
+                <!-- FORMULARIO REGISTRO -->
+                <div id="form-auth-register" style="display:none;">
+                    <input type="text" id="reg-username" class="arcade-input" style="font-size:1.1rem; padding:0.8rem; width:100%; max-width:100%; margin-bottom:0.8rem;" placeholder="Nombre de Alumna (ej. Sofia)">
+                    <input type="password" id="reg-password" class="arcade-input" style="font-size:1.1rem; padding:0.8rem; width:100%; max-width:100%; margin-bottom:0.8rem;" placeholder="Crea tu Contraseña o PIN">
+                    <select id="reg-grade" class="arcade-input" style="font-size:1rem; padding:0.7rem; width:100%; max-width:100%; margin-bottom:1rem;">
+                        <option value="1º Primaria">1º Primaria</option>
+                        <option value="2º Primaria">2º Primaria</option>
+                        <option value="3º Primaria">3º Primaria</option>
+                        <option value="4º Primaria" selected>4º Primaria</option>
+                        <option value="5º Primaria">5º Primaria</option>
+                        <option value="6º Primaria">6º Primaria</option>
+                        <option value="1º ESO">1º ESO</option>
+                    </select>
+                    
+                    <p style="font-size:0.8rem; opacity:0.7; margin-bottom:0.5rem; text-align:left;">Elige tu Avatar:</p>
+                    <div id="reg-avatar-picker" style="display:grid; grid-template-columns:repeat(6, 1fr); gap:0.5rem; margin-bottom:1.5rem;">
+                        <div class="avatar-option active" onclick="app.pickAvatar('⚡', this)">⚡</div>
+                        <div class="avatar-option" onclick="app.pickAvatar('🦄', this)">🦄</div>
+                        <div class="avatar-option" onclick="app.pickAvatar('🚀', this)">🚀</div>
+                        <div class="avatar-option" onclick="app.pickAvatar('🐱', this)">🐱</div>
+                        <div class="avatar-option" onclick="app.pickAvatar('🦊', this)">🦊</div>
+                        <div class="avatar-option" onclick="app.pickAvatar('👑', this)">👑</div>
+                        <div class="avatar-option" onclick="app.pickAvatar('🌸', this)">🌸</div>
+                        <div class="avatar-option" onclick="app.pickAvatar('🎨', this)">🎨</div>
+                        <div class="avatar-option" onclick="app.pickAvatar('⚽', this)">⚽</div>
+                        <div class="avatar-option" onclick="app.pickAvatar('🪐', this)">🪐</div>
+                        <div class="avatar-option" onclick="app.pickAvatar('🎮', this)">🎮</div>
+                        <div class="avatar-option" onclick="app.pickAvatar('🐉', this)">🐉</div>
+                    </div>
+
+                    <button class="btn" style="width:100%;" onclick="app.handleRegister()">✨ ¡Crear mi Cuenta!</button>
+                    <div id="reg-msg" style="margin-top:1rem; font-size:0.85rem; color:var(--error); display:none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PANTALLA SOCIAL / AMIGAS ESTILO DUOLINGO -->
+        <div id="screen-social" class="screen">
+            <!-- CABECERA DUOLINGO: RACHAS Y PROTECTORES -->
+            <div class="glass-card" style="background:linear-gradient(135deg, rgba(251,191,36,0.12), rgba(139,92,246,0.15)); border:2px solid rgba(251,191,36,0.3); padding:1.8rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1.5rem;">
+                    <div style="display:flex; align-items:center; gap:1.2rem;">
+                        <div style="font-size:3.5rem; animation:pulse 2s infinite ease-in-out;">🔥</div>
+                        <div>
+                            <div style="display:flex; align-items:baseline; gap:0.5rem;">
+                                <h2 id="social-streak-val" style="font-size:2.4rem; font-weight:900; color:#fbbf24;">0 Días</h2>
+                                <span style="font-size:1rem; font-weight:700; color:rgba(255,255,255,0.7);">de Racha</span>
+                            </div>
+                            <p id="social-streak-sub" style="opacity:0.8; font-size:0.9rem;">¡Practica hoy cualquier reto para mantener viva tu llama!</p>
+                        </div>
+                    </div>
+                    
+                    <div style="display:flex; align-items:center; gap:1.2rem; background:rgba(6,182,212,0.1); border:1px solid rgba(6,182,212,0.3); padding:1rem 1.4rem; border-radius:20px;">
+                        <div style="font-size:2.5rem;">🧊</div>
+                        <div>
+                            <div style="display:flex; align-items:baseline; gap:0.4rem;">
+                                <span id="social-shield-val" style="font-size:1.8rem; font-weight:800; color:#38bdf8;">1</span>
+                                <span style="font-size:0.85rem; font-weight:600; opacity:0.8;">Protectores</span>
+                            </div>
+                            <p style="font-size:0.75rem; opacity:0.7;">Salva tu racha si un día no juegas</p>
+                        </div>
+                        <button class="btn" style="padding:0.5rem 0.9rem; font-size:0.75rem; background:linear-gradient(135deg, #0284c7, #06b6d4);" onclick="app.buyShield()">+1 🧊 (300 XP)</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUB-PESTAÑAS SOCIAL -->
+            <div style="display:flex; gap:0.8rem; background:rgba(0,0,0,0.3); padding:0.4rem; border-radius:18px; max-width:600px;">
+                <div class="segment active" id="tab-social-ranking" onclick="app.switchSocialTab('ranking')">🏆 Ranking de Amigas</div>
+                <div class="segment" id="tab-social-friends" onclick="app.switchSocialTab('friends')">🔍 Buscar y Añadir</div>
+                <div class="segment" id="tab-social-challenges" onclick="app.switchSocialTab('challenges')">⚔️ Retos y Batallas</div>
+            </div>
+
+            <!-- CONTENIDO 1: RANKING / PODIO -->
+            <div id="subscreen-ranking" style="display:flex; flex-direction:column; gap:1.5rem;">
+                <div id="leaderboard-podium" class="podium-container"></div>
+                <div class="glass-card" style="padding:1rem;">
+                    <div id="leaderboard-list" style="display:flex; flex-direction:column; gap:0.6rem;"></div>
+                </div>
+            </div>
+
+            <!-- CONTENIDO 2: BUSCAR Y LISTA DE AMIGAS -->
+            <div id="subscreen-friends" style="display:none; flex-direction:column; gap:1.5rem;">
+                <div class="glass-card">
+                    <h3 style="margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem;"><i data-lucide="user-plus"></i> Buscar Nuevas Amigas</h3>
+                    <div style="display:flex; gap:1rem;">
+                        <input type="text" id="input-search-friend" class="arcade-input" style="font-size:1.1rem; padding:0.8rem; text-align:left; max-width:100%; flex:1;" placeholder="Escribe el nombre de tu compañera..." onkeyup="if(event.key==='Enter') app.searchFriends()">
+                        <button class="btn" style="padding:0 2rem;" onclick="app.searchFriends()">Buscar</button>
+                    </div>
+                    <div id="search-results-list" style="margin-top:1.5rem; display:flex; flex-direction:column; gap:0.6rem;"></div>
+                </div>
+
+                <div class="glass-card">
+                    <h3 style="margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem;"><i data-lucide="users"></i> Mis Amigas Conectadas</h3>
+                    <div id="my-friends-list" style="display:flex; flex-direction:column; gap:0.6rem;"></div>
+                </div>
+            </div>
+
+            <!-- CONTENIDO 3: RETOS Y BATALLAS -->
+            <div id="subscreen-challenges" style="display:none; flex-direction:column; gap:1.5rem;">
+                <div class="glass-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+                        <div>
+                            <h3>⚔️ Retos de Cálculo Mental (60s)</h3>
+                            <p style="opacity:0.7; font-size:0.9rem;">Compite a ver quién responde más operaciones en 60 segundos.</p>
+                        </div>
+                        <button class="btn" onclick="app.openNewChallengeModal()">⚡ Enviar un Reto</button>
+                    </div>
+                </div>
+                
+                <div class="glass-card">
+                    <h4 style="margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem;"><i data-lucide="inbox"></i> Retos Pendientes</h4>
+                    <div id="challenges-pending-list" style="display:flex; flex-direction:column; gap:0.8rem;"></div>
+                </div>
+
+                <div class="glass-card">
+                    <h4 style="margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem;"><i data-lucide="history"></i> Historial de Batallas</h4>
+                    <div id="challenges-history-list" style="display:flex; flex-direction:column; gap:0.8rem;"></div>
+                </div>
+            </div>
         </div>
 
         <!-- APRENDO JUGANDO -->
@@ -1027,6 +1247,19 @@
                 <div style="display:flex; gap:1rem; margin-top:1.5rem;">
                     <button class="btn" style="flex:1; background:transparent; border:1px solid var(--glass-border);" onclick="app.modal('confirm', false)">Cancelar</button>
                     <button id="confirm-ok-btn" class="btn" style="flex:1; background:var(--error);">Sí, Eliminar</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="modal-challenge" class="modal">
+            <div class="glass-card" style="width:100%; max-width:420px; text-align:center;">
+                <div style="font-size:3rem; margin-bottom:0.5rem;">⚔️</div>
+                <h2 style="margin-bottom:0.8rem;">Nuevo Reto</h2>
+                <p style="opacity:0.8; font-size:0.9rem; margin-bottom:1.5rem;">Elige a cuál de tus amigas quieres retar a una batalla de cálculo rápido (60s):</p>
+                <select id="challenge-target-friend" class="arcade-input" style="font-size:1.1rem; padding:0.8rem; width:100%; max-width:100%; margin-bottom:1.5rem;"></select>
+                <div style="display:flex; gap:1rem;">
+                    <button class="btn" style="flex:1;" onclick="app.startChallengeBattle()">🚀 ¡Jugar y Enviar!</button>
+                    <button class="btn" style="flex:1; background:var(--error);" onclick="app.modal('challenge', false)">Cancelar</button>
                 </div>
             </div>
         </div>
@@ -1523,8 +1756,16 @@
             }
         };
 
+        const SUPABASE_URL = 'https://wybdjnddtrcvshoxcdye.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_rjXUFsv-hkT5exfVpbP93w_41fd7y8O';
+        const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
         const app = {
             data: JSON.parse(localStorage.getItem('lara_excellence_v10') || '{"users":{},"active":null,"missions":{},"settings":{"apiKey":""}}'),
+            selectedAvatar: '⚡',
+            cloudUser: JSON.parse(localStorage.getItem('lara_cloud_session') || 'null'),
+            activeChallenge: null,
+            socialTab: 'ranking',
             curr: null, mode: 'time', input: 'kb', cOp: null, st: 0, streak: 0, sCorr: 0, timer: null, studyIdx: 0, currStudy: null, chart: null, dailyBonus: false,
             library: {
                 "young": [
@@ -1724,14 +1965,20 @@
             },
 
 
-            init() {
+            async init() {
                 window.app = this;
                 lucide.createIcons();
-                if(this.data.active && this.data.users[this.data.active]) this.selectUser(this.data.active); 
-                else this.showUserSelection();
                 document.getElementById('arcade-input').onkeypress = (e) => { if(e.key==='Enter') this.checkArcade(); };
                 if(this.data.settings.apiKey) document.getElementById('admin-api-key').value = this.data.settings.apiKey;
-                console.log("Lara Engine Initialized");
+
+                if (this.cloudUser && this.cloudUser.id) {
+                    await this.syncAndLoadCloudUser(this.cloudUser.id);
+                } else if(this.data.active && this.data.users[this.data.active]) {
+                    this.selectUser(this.data.active);
+                } else {
+                    this.showUserSelection();
+                }
+                console.log("Lara Engine Initialized with Supabase & Duolingo features");
             },
 
             saveApiKey() {
@@ -1818,11 +2065,694 @@
                     document.getElementById('arcade-results').style.display = 'none';
                 }
                 if(id==='study') this.renderLibrary();
+                if(id==='social') this.renderSocial();
                 if(id==='stats') this.renderStats();
                 if(id==='admin') this.renderAdmin();
             },
 
-            showUserSelection() { this.switchScreen('users'); document.getElementById('main-header').style.visibility='hidden'; document.getElementById('sidebar').style.display='none'; this.renderUserSelection(); },
+            showUserSelection() { 
+                this.switchScreen('users'); 
+                document.getElementById('main-header').style.visibility='hidden'; 
+                document.getElementById('sidebar').style.display='none'; 
+                this.setAuthTab('login');
+            },
+
+            // --- GESTIÓN DE CUENTAS CLOUD (SUPABASE) ---
+            setAuthTab(tab) {
+                const tl = document.getElementById('tab-auth-login');
+                const tr = document.getElementById('tab-auth-register');
+                const fl = document.getElementById('form-auth-login');
+                const fr = document.getElementById('form-auth-register');
+                if(tl) tl.classList.toggle('active', tab === 'login');
+                if(tr) tr.classList.toggle('active', tab === 'register');
+                if(fl) fl.style.display = tab === 'login' ? 'block' : 'none';
+                if(fr) fr.style.display = tab === 'register' ? 'block' : 'none';
+                const lm = document.getElementById('login-msg'); if(lm) lm.style.display = 'none';
+                const rm = document.getElementById('reg-msg'); if(rm) rm.style.display = 'none';
+            },
+
+            pickAvatar(avatar, el) {
+                this.selectedAvatar = avatar;
+                document.querySelectorAll('.avatar-option').forEach(o => o.classList.remove('active'));
+                if(el) el.classList.add('active');
+            },
+
+            async handleRegister() {
+                const username = document.getElementById('reg-username').value.trim();
+                const password = document.getElementById('reg-password').value.trim();
+                const grade = document.getElementById('reg-grade').value;
+                const avatar = this.selectedAvatar || '⚡';
+                const msg = document.getElementById('reg-msg');
+
+                if(!username || !password) {
+                    msg.textContent = "Por favor, escribe un nombre y una contraseña.";
+                    msg.style.display = 'block';
+                    return;
+                }
+                if(username.length < 3) {
+                    msg.textContent = "El nombre debe tener al menos 3 caracteres.";
+                    msg.style.display = 'block';
+                    return;
+                }
+
+                msg.textContent = "Creando cuenta en la nube...";
+                msg.style.color = "var(--primary)";
+                msg.style.display = 'block';
+
+                try {
+                    const { data: existing } = await sb
+                        .from('profiles')
+                        .select('id')
+                        .eq('username', username)
+                        .maybeSingle();
+
+                    if(existing) {
+                        msg.textContent = `El nombre '${username}' ya existe. ¡Elige otro!`;
+                        msg.style.color = "var(--error)";
+                        return;
+                    }
+
+                    const { data: newProfile, error: insertErr } = await sb
+                        .from('profiles')
+                        .insert([{
+                            username: username,
+                            password: password,
+                            grade: grade,
+                            avatar: avatar,
+                            xp: 0,
+                            level: 1,
+                            streak_count: 1,
+                            streak_shields: 1,
+                            last_active_date: new Date().toISOString().split('T')[0]
+                        }])
+                        .select()
+                        .single();
+
+                    if(insertErr || !newProfile) {
+                        throw new Error(insertErr ? insertErr.message : "Error al registrar");
+                    }
+
+                    this.cloudUser = newProfile;
+                    localStorage.setItem('lara_cloud_session', JSON.stringify(newProfile));
+                    this.notify("🎉 ¡Bienvenida!", `Cuenta creada para ${username}.`);
+                    await this.syncAndLoadCloudUser(newProfile.id);
+                } catch(e) {
+                    msg.textContent = `Error: ${e.message}`;
+                    msg.style.color = "var(--error)";
+                }
+            },
+
+            async handleLogin() {
+                const username = document.getElementById('login-username').value.trim();
+                const password = document.getElementById('login-password').value.trim();
+                const msg = document.getElementById('login-msg');
+
+                if(!username || !password) {
+                    msg.textContent = "Por favor, escribe usuario y contraseña.";
+                    msg.style.display = 'block';
+                    return;
+                }
+
+                msg.textContent = "Verificando...";
+                msg.style.color = "var(--primary)";
+                msg.style.display = 'block';
+
+                try {
+                    const { data: profile, error } = await sb
+                        .from('profiles')
+                        .select('*')
+                        .eq('username', username)
+                        .maybeSingle();
+
+                    if(!profile || profile.password !== password) {
+                        msg.textContent = "Usuario o contraseña incorrectos.";
+                        msg.style.color = "var(--error)";
+                        return;
+                    }
+
+                    this.cloudUser = profile;
+                    localStorage.setItem('lara_cloud_session', JSON.stringify(profile));
+                    this.notify("👋 ¡Hola de nuevo!", `Bienvenida, ${profile.username}.`);
+                    await this.syncAndLoadCloudUser(profile.id);
+                } catch(e) {
+                    msg.textContent = `Error: ${e.message}`;
+                    msg.style.color = "var(--error)";
+                }
+            },
+
+            logout() {
+                this.cloudUser = null;
+                localStorage.removeItem('lara_cloud_session');
+                this.showUserSelection();
+                this.notify("🔒 Sesión Cerrada", "Hasta la próxima.");
+            },
+
+            async syncAndLoadCloudUser(userId) {
+                try {
+                    const { data: profile, error } = await sb
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', userId)
+                        .maybeSingle();
+
+                    if(profile) {
+                        const today = new Date().toISOString().split('T')[0];
+                        const lastDate = profile.last_active_date || today;
+                        const diffDays = Math.floor((new Date(today) - new Date(lastDate)) / (1000 * 60 * 60 * 24));
+                        
+                        let streakUpdated = false;
+                        if(diffDays === 1) {
+                            profile.streak_count = (profile.streak_count || 0) + 1;
+                            profile.last_active_date = today;
+                            streakUpdated = true;
+                        } else if(diffDays > 1) {
+                            if((profile.streak_shields || 0) > 0) {
+                                profile.streak_shields -= 1;
+                                profile.last_active_date = today;
+                                streakUpdated = true;
+                                setTimeout(() => this.notify("🧊 ¡Protector de Racha Activado!", `Se consumió 1 protector. ¡Tu racha de ${profile.streak_count} días sigue a salvo!`), 1000);
+                            } else {
+                                profile.streak_count = 1;
+                                profile.last_active_date = today;
+                                streakUpdated = true;
+                            }
+                        }
+
+                        if(streakUpdated) {
+                            await sb.from('profiles').update({
+                                streak_count: profile.streak_count,
+                                streak_shields: profile.streak_shields,
+                                last_active_date: profile.last_active_date
+                            }).eq('id', profile.id);
+                        }
+
+                        this.cloudUser = profile;
+                        localStorage.setItem('lara_cloud_session', JSON.stringify(profile));
+
+                        const n = profile.username;
+                        this.data.active = n;
+                        if(!this.data.users[n]) this.data.users[n] = { history:[], achievements:[], fails:[], mastery:{} };
+                        this.curr = this.data.users[n];
+                        this.curr.xp = profile.xp || 0;
+                        this.curr.lvl = profile.level || 1;
+                        this.curr.grade = profile.grade || '4º Primaria';
+                        this.curr.avatar = profile.avatar || '⚡';
+                        this.curr.streak = profile.streak_count || 1;
+                        this.curr.shields = profile.streak_shields !== undefined ? profile.streak_shields : 1;
+                        if(!this.curr.history) this.curr.history = [];
+                        if(!this.curr.achievements) this.curr.achievements = [];
+                        if(!this.curr.fails) this.curr.fails = [];
+                        if(!this.curr.mastery) this.curr.mastery = { calcula: { '+': 1, '-': 1, '*': 1, '/': 1 } };
+                        this.save();
+
+                        document.getElementById('sidebar-user-name').textContent = n;
+                        const avEl = document.getElementById('sidebar-user-avatar'); if(avEl) avEl.textContent = profile.avatar || '⚡';
+                        document.getElementById('main-header').style.visibility = 'visible';
+                        document.getElementById('sidebar').style.display = 'flex';
+                        
+                        this.updateXP();
+                        this.updateHeaderStreak();
+                        this.switchScreen('home', document.querySelector('[data-lucide="home"]').parentElement);
+                    }
+                } catch(e) {
+                    console.error("Error sync cloud user:", e);
+                }
+            },
+
+            updateHeaderStreak() {
+                if(!this.cloudUser) return;
+                const sc = document.getElementById('header-streak-count');
+                const sh = document.getElementById('header-shield-count');
+                if(sc) sc.textContent = this.cloudUser.streak_count || 1;
+                if(sh) sh.textContent = this.cloudUser.streak_shields !== undefined ? this.cloudUser.streak_shields : 1;
+                
+                const ssv = document.getElementById('social-streak-val');
+                const ssh = document.getElementById('social-shield-val');
+                if(ssv) ssv.textContent = `${this.cloudUser.streak_count || 1} Días`;
+                if(ssh) ssh.textContent = this.cloudUser.streak_shields !== undefined ? this.cloudUser.streak_shields : 1;
+            },
+
+            async syncProfileToCloud() {
+                if(!this.cloudUser) return;
+                try {
+                    await sb.from('profiles').update({
+                        xp: this.curr.xp,
+                        level: this.curr.lvl
+                    }).eq('id', this.cloudUser.id);
+                    this.cloudUser.xp = this.curr.xp;
+                    this.cloudUser.level = this.curr.lvl;
+                    localStorage.setItem('lara_cloud_session', JSON.stringify(this.cloudUser));
+                } catch(e) {
+                    console.error("Error syncing profile:", e);
+                }
+            },
+
+            async buyShield() {
+                if(!this.cloudUser) return;
+                const currentShields = this.cloudUser.streak_shields || 0;
+                if(currentShields >= 3) {
+                    this.notify("🧊 Máximo Alcanzado", "Ya tienes 3 protectores de racha (el máximo posible).");
+                    return;
+                }
+                if(this.curr.xp < 300) {
+                    this.notify("⚡ Te falta XP", "Necesitas al menos 300 XP para comprar un protector.");
+                    return;
+                }
+
+                this.curr.xp -= 300;
+                this.cloudUser.streak_shields = currentShields + 1;
+                this.updateXP();
+                this.updateHeaderStreak();
+                this.save();
+
+                await sb.from('profiles').update({
+                    xp: this.curr.xp,
+                    streak_shields: this.cloudUser.streak_shields
+                }).eq('id', this.cloudUser.id);
+
+                sfx.lvl();
+                this.notify("🧊 ¡Protector Comprado!", "Ahora tienes un escudo extra para salvar tu racha.");
+            },
+
+            // --- RED SOCIAL Y GAMIFICACIÓN (DUOLINGO STYLE) ---
+            switchSocialTab(tab) {
+                this.socialTab = tab;
+                const tr = document.getElementById('tab-social-ranking');
+                const tf = document.getElementById('tab-social-friends');
+                const tc = document.getElementById('tab-social-challenges');
+                if(tr) tr.classList.toggle('active', tab === 'ranking');
+                if(tf) tf.classList.toggle('active', tab === 'friends');
+                if(tc) tc.classList.toggle('active', tab === 'challenges');
+
+                const sr = document.getElementById('subscreen-ranking');
+                const sf = document.getElementById('subscreen-friends');
+                const sc = document.getElementById('subscreen-challenges');
+                if(sr) sr.style.display = tab === 'ranking' ? 'flex' : 'none';
+                if(sf) sf.style.display = tab === 'friends' ? 'flex' : 'none';
+                if(sc) sc.style.display = tab === 'challenges' ? 'flex' : 'none';
+
+                if(tab === 'ranking') this.loadLeaderboard();
+                if(tab === 'friends') this.loadFriends();
+                if(tab === 'challenges') this.loadChallenges();
+            },
+
+            renderSocial() {
+                this.updateHeaderStreak();
+                this.switchSocialTab(this.socialTab || 'ranking');
+            },
+
+            async loadLeaderboard() {
+                const podiumEl = document.getElementById('leaderboard-podium');
+                const listEl = document.getElementById('leaderboard-list');
+                if(!podiumEl || !listEl) return;
+
+                podiumEl.innerHTML = '<div class="loader"></div>';
+                listEl.innerHTML = '';
+
+                try {
+                    const { data: users, error } = await sb
+                        .from('profiles')
+                        .select('id, username, grade, avatar, xp, level, streak_count')
+                        .order('xp', { ascending: false })
+                        .limit(20);
+
+                    if(error || !users || users.length === 0) {
+                        podiumEl.innerHTML = '<p style="opacity:0.6; padding:1rem;">Aún no hay puntuaciones en el ranking.</p>';
+                        return;
+                    }
+
+                    const p1 = users[0];
+                    const p2 = users[1];
+                    const p3 = users[2];
+
+                    let podiumHtml = '';
+                    if(p2) {
+                        podiumHtml += `
+                            <div class="podium-slot podium-2">
+                                <div style="font-size:2.2rem; margin-bottom:0.2rem;">${p2.avatar || '👧'}</div>
+                                <div style="font-weight:700; font-size:0.9rem; margin-bottom:0.3rem;">${p2.username}</div>
+                                <div class="podium-box">
+                                    <div style="font-size:1.4rem;">🥈</div>
+                                    <div style="font-size:0.85rem; color:#cbd5e1;">${p2.xp} XP</div>
+                                </div>
+                            </div>`;
+                    }
+                    if(p1) {
+                        podiumHtml += `
+                            <div class="podium-slot podium-1">
+                                <div style="font-size:2.8rem; margin-bottom:0.2rem;">${p1.avatar || '👑'}</div>
+                                <div style="font-weight:800; font-size:1rem; margin-bottom:0.3rem; color:#fbbf24;">${p1.username}</div>
+                                <div class="podium-box">
+                                    <div style="font-size:1.8rem;">🥇</div>
+                                    <div style="font-size:1rem; color:#fbbf24;">${p1.xp} XP</div>
+                                </div>
+                            </div>`;
+                    }
+                    if(p3) {
+                        podiumHtml += `
+                            <div class="podium-slot podium-3">
+                                <div style="font-size:2.2rem; margin-bottom:0.2rem;">${p3.avatar || '👧'}</div>
+                                <div style="font-weight:700; font-size:0.9rem; margin-bottom:0.3rem;">${p3.username}</div>
+                                <div class="podium-box">
+                                    <div style="font-size:1.3rem;">🥉</div>
+                                    <div style="font-size:0.85rem; color:#d97706;">${p3.xp} XP</div>
+                                </div>
+                            </div>`;
+                    }
+                    podiumEl.innerHTML = podiumHtml;
+
+                    let listHtml = '';
+                    users.forEach((u, idx) => {
+                        const isMe = this.cloudUser && this.cloudUser.id === u.id;
+                        listHtml += `
+                            <div class="social-user-row ${isMe ? 'is-me' : ''}">
+                                <div style="display:flex; align-items:center; gap:1rem;">
+                                    <span style="font-weight:800; width:25px; opacity:0.6; text-align:center;">#${idx+1}</span>
+                                    <span style="font-size:1.6rem;">${u.avatar || '⚡'}</span>
+                                    <div>
+                                        <div style="font-weight:700; font-size:0.95rem;">${u.username} ${isMe ? '<small style="color:var(--primary); font-weight:800;">(Tú)</small>' : ''}</div>
+                                        <div style="font-size:0.75rem; opacity:0.6;">${u.grade || '4º Primaria'} · Nivel ${u.level || 1}</div>
+                                    </div>
+                                </div>
+                                <div style="display:flex; align-items:center; gap:1.2rem;">
+                                    <span style="font-size:0.85rem; font-weight:700; color:#fbbf24;">🔥 ${u.streak_count || 1}d</span>
+                                    <span style="font-weight:800; font-size:1rem; color:white;">${u.xp} XP</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    listEl.innerHTML = listHtml;
+                } catch(e) {
+                    podiumEl.innerHTML = `<p style="color:var(--error);">Error al cargar ranking: ${e.message}</p>`;
+                }
+            },
+
+            async searchFriends() {
+                const query = document.getElementById('input-search-friend').value.trim();
+                const resEl = document.getElementById('search-results-list');
+                if(!query) return;
+
+                resEl.innerHTML = '<div class="loader"></div>';
+
+                try {
+                    const myId = this.cloudUser ? this.cloudUser.id : '00000000-0000-0000-0000-000000000000';
+                    const { data: users, error } = await sb
+                        .from('profiles')
+                        .select('id, username, grade, avatar, xp, level, streak_count')
+                        .ilike('username', `%${query}%`)
+                        .neq('id', myId)
+                        .limit(10);
+
+                    if(error || !users || users.length === 0) {
+                        resEl.innerHTML = '<p style="opacity:0.6; padding:0.5rem;">No se encontraron compañeras con ese nombre.</p>';
+                        return;
+                    }
+
+                    const { data: myFollows } = await sb
+                        .from('friends')
+                        .select('friend_id')
+                        .eq('user_id', myId);
+
+                    const followedIds = new Set((myFollows || []).map(f => f.friend_id));
+
+                    let html = '';
+                    users.forEach(u => {
+                        const isFollowing = followedIds.has(u.id);
+                        html += `
+                            <div class="social-user-row">
+                                <div style="display:flex; align-items:center; gap:1rem;">
+                                    <span style="font-size:1.8rem;">${u.avatar || '⚡'}</span>
+                                    <div>
+                                        <div style="font-weight:700;">${u.username}</div>
+                                        <div style="font-size:0.75rem; opacity:0.6;">${u.grade} · Nivel ${u.level} · 🔥 ${u.streak_count}d</div>
+                                    </div>
+                                </div>
+                                <button class="btn" style="padding:0.4rem 1rem; font-size:0.8rem; background:${isFollowing ? 'rgba(255,255,255,0.1)' : 'var(--primary)'};" onclick="app.toggleFollow('${u.id}', ${isFollowing})">
+                                    ${isFollowing ? '✓ Siguiendo' : '+ Añadir Amiga'}
+                                </button>
+                            </div>
+                        `;
+                    });
+                    resEl.innerHTML = html;
+                } catch(e) {
+                    resEl.innerHTML = `<p style="color:var(--error);">Error al buscar: ${e.message}</p>`;
+                }
+            },
+
+            async toggleFollow(friendId, currentlyFollowing) {
+                if(!this.cloudUser) return;
+                try {
+                    if(currentlyFollowing) {
+                        await sb.from('friends').delete().match({ user_id: this.cloudUser.id, friend_id: friendId });
+                        this.notify("👥 Amistades", "Dejaste de seguir a esta amiga.");
+                    } else {
+                        await sb.from('friends').insert([{ user_id: this.cloudUser.id, friend_id: friendId }]);
+                        this.notify("🤝 ¡Nueva Amiga!", "Ahora son amigas. ¡Puedes retarla a una batalla!");
+                    }
+                    this.searchFriends();
+                    this.loadFriends();
+                } catch(e) {
+                    console.error("Error toggle follow:", e);
+                }
+            },
+
+            async loadFriends() {
+                const listEl = document.getElementById('my-friends-list');
+                if(!listEl || !this.cloudUser) return;
+
+                listEl.innerHTML = '<div class="loader"></div>';
+
+                try {
+                    const { data: friendships, error } = await sb
+                        .from('friends')
+                        .select('friend_id')
+                        .eq('user_id', this.cloudUser.id);
+
+                    if(error || !friendships || friendships.length === 0) {
+                        listEl.innerHTML = '<p style="opacity:0.6; padding:0.5rem;">Aún no has añadido amigas. Usa el buscador de arriba para encontrarlas.</p>';
+                        return;
+                    }
+
+                    const friendIds = friendships.map(f => f.friend_id);
+                    const { data: friendsData } = await sb
+                        .from('profiles')
+                        .select('id, username, grade, avatar, xp, level, streak_count')
+                        .in('id', friendIds);
+
+                    this.friendsList = friendsData || [];
+
+                    let html = '';
+                    this.friendsList.forEach(f => {
+                        html += `
+                            <div class="social-user-row">
+                                <div style="display:flex; align-items:center; gap:1rem;">
+                                    <span style="font-size:1.8rem;">${f.avatar || '⚡'}</span>
+                                    <div>
+                                        <div style="font-weight:700;">${f.username}</div>
+                                        <div style="font-size:0.75rem; opacity:0.6;">${f.grade} · Nivel ${f.level} · 🔥 ${f.streak_count}d racha</div>
+                                    </div>
+                                </div>
+                                <div style="display:flex; gap:0.5rem;">
+                                    <button class="btn" style="padding:0.4rem 0.8rem; font-size:0.75rem; background:linear-gradient(135deg, #ec4899, #8b5cf6);" onclick="app.launchDirectChallenge('${f.id}', '${f.username}')">⚔️ Retar</button>
+                                    <button class="btn" style="padding:0.4rem 0.6rem; font-size:0.75rem; background:rgba(239,68,68,0.2); color:#fca5a5;" onclick="app.toggleFollow('${f.id}', true)">✕</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    listEl.innerHTML = html;
+                } catch(e) {
+                    listEl.innerHTML = `<p style="color:var(--error);">Error al cargar amigas: ${e.message}</p>`;
+                }
+            },
+
+            async openNewChallengeModal() {
+                if(!this.friendsList || this.friendsList.length === 0) {
+                    await this.loadFriends();
+                }
+                const select = document.getElementById('challenge-target-friend');
+                if(!this.friendsList || this.friendsList.length === 0) {
+                    this.notify("👥 Sin Amigas", "Primero añade al menos una amiga con el buscador.");
+                    this.switchSocialTab('friends');
+                    return;
+                }
+
+                select.innerHTML = this.friendsList.map(f => `<option value="${f.id}">${f.avatar || '👧'} ${f.username} (${f.grade})</option>`).join('');
+                this.modal('challenge', true);
+            },
+
+            launchDirectChallenge(friendId, friendName) {
+                this.activeChallenge = {
+                    isNew: true,
+                    opponentId: friendId,
+                    opponentName: friendName
+                };
+                this.notify("⚔️ ¡A por el Reto!", `Juega tu mejor partida de cálculo (60s) para retar a ${friendName}.`);
+                this.switchScreen('arcade', document.querySelector('[data-lucide="zap"]').parentElement);
+                this.showArcadeConfig('math');
+                this.startMathGame();
+            },
+
+            startChallengeBattle() {
+                const select = document.getElementById('challenge-target-friend');
+                const targetId = select.value;
+                const friend = this.friendsList.find(f => f.id === targetId);
+                this.modal('challenge', false);
+                this.launchDirectChallenge(targetId, friend ? friend.username : "tu amiga");
+            },
+
+            async completeChallengeBattle(score) {
+                if(!this.activeChallenge || !this.cloudUser) return;
+                const ac = this.activeChallenge;
+                this.activeChallenge = null;
+
+                try {
+                    if(ac.isNew) {
+                        await sb.from('challenges').insert([{
+                            challenger_id: this.cloudUser.id,
+                            opponent_id: ac.opponentId,
+                            challenger_score: score,
+                            game_type: 'math',
+                            status: 'pending'
+                        }]);
+                        this.notify("⚔️ ¡Reto Enviado!", `Hiciste ${score} aciertos. ¡Le llegará la invitación a ${ac.opponentName}!`);
+                    } else if(ac.challengeId) {
+                        let winnerId = null;
+                        let outcomeMsg = "";
+                        if(score > ac.challengerScore) {
+                            winnerId = this.cloudUser.id;
+                            outcomeMsg = `🎉 ¡VICTORIA! Superaste los ${ac.challengerScore} aciertos de ${ac.challengerName}. (+150 XP bonus)`;
+                            this.addXP(150);
+                        } else if(score < ac.challengerScore) {
+                            winnerId = ac.challengerId;
+                            outcomeMsg = `🥈 Buen intento (${score} aciertos). Ganó ${ac.challengerName} con ${ac.challengerScore}. (+30 XP)`;
+                            this.addXP(30);
+                        } else {
+                            outcomeMsg = `🤝 ¡EMPATE perfecto! Ambas consiguieron ${score} aciertos. (+75 XP)`;
+                            this.addXP(75);
+                        }
+
+                        await sb.from('challenges').update({
+                            opponent_score: score,
+                            status: 'completed',
+                            winner_id: winnerId
+                        }).eq('id', ac.challengeId);
+
+                        sfx.lvl();
+                        this.notify("⚔️ Fin de la Batalla", outcomeMsg);
+                    }
+                } catch(e) {
+                    console.error("Error challenge finish:", e);
+                }
+            },
+
+            async loadChallenges() {
+                const pendEl = document.getElementById('challenges-pending-list');
+                const histEl = document.getElementById('challenges-history-list');
+                if(!pendEl || !histEl || !this.cloudUser) return;
+
+                pendEl.innerHTML = '<div class="loader"></div>';
+                histEl.innerHTML = '<div class="loader"></div>';
+
+                try {
+                    const { data: challenges, error } = await sb
+                        .from('challenges')
+                        .select('*, challenger:challenger_id(username, avatar), opponent:opponent_id(username, avatar)')
+                        .or(`challenger_id.eq.${this.cloudUser.id},opponent_id.eq.${this.cloudUser.id}`)
+                        .order('created_at', { ascending: false })
+                        .limit(20);
+
+                    if(error || !challenges || challenges.length === 0) {
+                        pendEl.innerHTML = '<p style="opacity:0.6; padding:0.5rem;">No tienes retos pendientes.</p>';
+                        histEl.innerHTML = '<p style="opacity:0.6; padding:0.5rem;">Aún no has jugado ninguna batalla.</p>';
+                        return;
+                    }
+
+                    const pending = challenges.filter(c => c.status === 'pending');
+                    const history = challenges.filter(c => c.status === 'completed');
+
+                    if(pending.length === 0) {
+                        pendEl.innerHTML = '<p style="opacity:0.6; padding:0.5rem;">No tienes retos pendientes.</p>';
+                    } else {
+                        let html = '';
+                        pending.forEach(c => {
+                            const isIncoming = c.opponent_id === this.cloudUser.id;
+                            if(isIncoming) {
+                                html += `
+                                    <div class="challenge-card">
+                                        <div style="display:flex; align-items:center; gap:0.8rem;">
+                                            <span style="font-size:2rem;">${c.challenger?.avatar || '⚡'}</span>
+                                            <div>
+                                                <strong>¡${c.challenger?.username} te ha retado!</strong>
+                                                <div style="font-size:0.8rem; opacity:0.7;">Consiguió ${c.challenger_score} aciertos en 60s. ¿Puedes superarla?</div>
+                                            </div>
+                                        </div>
+                                        <button class="btn" style="padding:0.5rem 1rem; font-size:0.85rem;" onclick="app.acceptChallengeBattle('${c.id}', '${c.challenger?.username}', ${c.challenger_score}, '${c.challenger_id}')">⚔️ ¡Aceptar Batalla!</button>
+                                    </div>
+                                `;
+                            } else {
+                                html += `
+                                    <div class="challenge-card" style="opacity:0.8;">
+                                        <div style="display:flex; align-items:center; gap:0.8rem;">
+                                            <span style="font-size:2rem;">⏳</span>
+                                            <div>
+                                                <strong>Retaste a ${c.opponent?.username}</strong>
+                                                <div style="font-size:0.8rem; opacity:0.7;">Puntuación enviada: ${c.challenger_score}. Esperando a que juegue.</div>
+                                            </div>
+                                        </div>
+                                        <span style="font-size:0.8rem; opacity:0.5;">En espera</span>
+                                    </div>
+                                `;
+                            }
+                        });
+                        pendEl.innerHTML = html;
+                    }
+
+                    if(history.length === 0) {
+                        histEl.innerHTML = '<p style="opacity:0.6; padding:0.5rem;">Aún no hay batallas terminadas.</p>';
+                    } else {
+                        let hHtml = '';
+                        history.forEach(c => {
+                            const iAmChallenger = c.challenger_id === this.cloudUser.id;
+                            const myScore = iAmChallenger ? c.challenger_score : c.opponent_score;
+                            const otherScore = iAmChallenger ? c.opponent_score : c.challenger_score;
+                            const otherName = iAmChallenger ? c.opponent?.username : c.challenger?.username;
+                            const otherAvatar = iAmChallenger ? c.opponent?.avatar : c.challenger?.avatar;
+
+                            const iWon = c.winner_id === this.cloudUser.id;
+                            const tie = myScore === otherScore;
+
+                            hHtml += `
+                                <div class="challenge-card" style="border-left: 4px solid ${iWon ? 'var(--success)' : tie ? 'var(--warning)' : 'var(--error)'};">
+                                    <div style="display:flex; align-items:center; gap:0.8rem;">
+                                        <span style="font-size:1.8rem;">${otherAvatar || '👧'}</span>
+                                        <div>
+                                            <strong>${iWon ? '🏆 Victoria' : tie ? '🤝 Empate' : '🥈 2º puesto'} contra ${otherName}</strong>
+                                            <div style="font-size:0.8rem; opacity:0.7;">Tú: ${myScore} aciertos vs ${otherName}: ${otherScore} aciertos</div>
+                                        </div>
+                                    </div>
+                                    <span style="font-weight:800; font-size:1.1rem; color:${iWon ? 'var(--success)' : tie ? '#fbbf24' : 'rgba(255,255,255,0.4)'};">${iWon ? '+150 XP' : tie ? '+75 XP' : '+30 XP'}</span>
+                                </div>
+                            `;
+                        });
+                        histEl.innerHTML = hHtml;
+                    }
+                } catch(e) {
+                    pendEl.innerHTML = `<p style="color:var(--error);">Error: ${e.message}</p>`;
+                }
+            },
+
+            acceptChallengeBattle(challengeId, challengerName, challengerScore, challengerId) {
+                this.activeChallenge = {
+                    challengeId: challengeId,
+                    challengerId: challengerId,
+                    challengerName: challengerName,
+                    challengerScore: challengerScore
+                };
+                this.notify("⚔️ ¡Batalla Iniciada!", `Supera los ${challengerScore} aciertos de ${challengerName}. ¡A por todas!`);
+                this.switchScreen('arcade', document.querySelector('[data-lucide="zap"]').parentElement);
+                this.showArcadeConfig('math');
+                this.startMathGame();
+            },
 
             selectUser(n) {
                 this.data.active = n; this.curr = this.data.users[n];
@@ -1835,24 +2765,6 @@
                 this.updateXP(); this.switchScreen('home', document.querySelector('[data-lucide="home"]').parentElement);
             },
 
-            renderUserSelection() {
-                const list = document.getElementById('user-selection-list'); list.innerHTML = '';
-                Object.keys(this.data.users).forEach(n => {
-                    const c = document.createElement('div'); c.className='mission-card'; c.style.textAlign='center';
-                    c.innerHTML = `<div class="level-badge" style="margin:0 auto 1.5rem auto; width:70px; height:70px; font-size:2rem;">${n[0].toUpperCase()}</div><h3>${n}</h3>`;
-                    c.onclick = () => this.selectUser(n); list.appendChild(c);
-                });
-            },
-
-            createUser() {
-                const n = document.getElementById('new-user-name').value.trim();
-                const b = document.getElementById('new-user-birth').value;
-                const g = document.getElementById('new-user-grade').value;
-                if(!n || this.data.users[n]) return;
-                this.data.users[n] = { xp:0, lvl:1, history:[], achievements:[], fails:[], mastery:{}, birth:b, grade:g };
-                this.save(); this.selectUser(n); this.modal('new-user', false);
-            },
-
             renderHome() {
                 const now = new Date(); document.getElementById('dash-date').textContent = now.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
                 document.getElementById('dash-welcome').textContent = `¡Hola, ${this.data.active}!`; document.getElementById('dash-xp-total').textContent = this.curr.xp;
@@ -1860,6 +2772,7 @@
                 
                 const dates = [...new Set(this.curr.history.map(h => h.d.split('T')[0]))].sort().reverse();
                 let streak = 0; if(dates.length > 0) { let d = new Date(); for(let ds of dates) { if(Math.floor((new Date() - new Date(ds)) / 86400000) <= 1) { streak++; d = new Date(ds); } else break; } }
+                if(this.cloudUser && this.cloudUser.streak_count) streak = this.cloudUser.streak_count;
                 document.getElementById('dash-streak-text').textContent = streak > 0 ? `¡Racha de ${streak} día${streak===1?'':'s'}!` : "¡Crea tu racha!";
                 document.getElementById('dash-streak-fire').style.opacity = streak > 0 ? '1' : '0.2';
                 if(streak >= 3) this.unlockBadge('fire');
@@ -1874,8 +2787,9 @@
                 const p = Math.min(100, Math.max(0, ((x-cX)/(nX-cX))*100));
                 document.getElementById('header-level').textContent=l; 
                 document.getElementById('header-xp-val').textContent=`${x} XP`;
-                document.getElementById('header-user-info').textContent = `${this.data.active} | ${this.curr.grade || '5º Primaria'}`;
+                document.getElementById('header-user-info').textContent = `${this.data.active} | ${this.curr.grade || '4º Primaria'}`;
                 document.getElementById('header-xp-bar').style.width=`${p}%`;
+                this.updateHeaderStreak();
             },
 
             addXP(a) {
@@ -1883,6 +2797,7 @@
                 const nL = Math.floor((500 + Math.sqrt(250000 + 2000 * this.curr.xp)) / 1000);
                 if(nL > old) { this.curr.lvl = nL; sfx.lvl(); this.notify(`✨ ¡NIVEL ${nL}!`, "¡Tu cerebro está imparable!"); expl(window.innerWidth/2, 100, '#fbbf24'); }
                 this.updateXP(); this.save();
+                this.syncProfileToCloud();
             },
 
             notify(t, m) { const box = document.getElementById('notification-box'); const toast = document.createElement('div'); toast.className='toast'; toast.innerHTML=`<strong>${t}</strong><br><small>${m}</small>`; box.appendChild(toast); setTimeout(()=>toast.remove(), 4000); },
@@ -2506,6 +3421,10 @@
                 document.getElementById('arcade-problemas-zone').style.display = 'none';
                 document.getElementById('explora-extra-stats').style.display = 'none';
                 document.getElementById('arcade-results').style.display = 'block';
+                
+                if (this.activeChallenge) {
+                    this.completeChallengeBattle(this.sCorr);
+                }
                 
                 const scoreLabelEl = document.getElementById('res-score-label');
                 const timeLabelEl = document.getElementById('res-time-label');
