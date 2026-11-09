@@ -695,17 +695,25 @@
     <canvas id="particle-canvas"></canvas>
     <div id="notification-box"></div>
 
+    <div id="admin-impersonation-bar" style="display:none; position:fixed; top:0; left:0; right:0; background:linear-gradient(90deg, #ec4899, #8b5cf6); color:white; padding:0.6rem 1.5rem; justify-content:space-between; align-items:center; z-index:9999; font-size:0.9rem; font-weight:700; box-shadow:0 4px 15px rgba(0,0,0,0.5);">
+        <div style="display:flex; align-items:center; gap:0.6rem;">
+            <span>👀 Modo Supervisión: Viendo como</span>
+            <span id="impersonated-student-name" style="background:rgba(0,0,0,0.3); padding:0.2rem 0.6rem; border-radius:8px;">Lara</span>
+        </div>
+        <button class="btn" style="padding:0.3rem 0.9rem; font-size:0.8rem; background:black; color:white; border:none;" onclick="app.exitImpersonation()">🔙 Salir y Volver al Panel Maestro</button>
+    </div>
+
     <aside id="sidebar" style="display:none;">
         <div class="logo" onclick="app.switchScreen('home', document.querySelector('[data-lucide=\'home\']').parentElement)">
             <i data-lucide="sparkles"></i> LARA PLATFORM
         </div>
-        <nav>
-            <div class="nav-item active" onclick="app.switchScreen('home', this)"><i data-lucide="home"></i> Inicio</div>
-            <div class="nav-item" onclick="app.switchScreen('arcade', this)"><i data-lucide="zap"></i> Aprendo Jugando</div>
-            <div class="nav-item" onclick="app.switchScreen('study', this)"><i data-lucide="book-open"></i> Estudio</div>
-            <div class="nav-item" onclick="app.switchScreen('social', this)"><i data-lucide="users"></i> Amigas 🔥</div>
-            <div class="nav-item" onclick="app.switchScreen('stats', this)"><i data-lucide="bar-chart-3"></i> Progreso</div>
-            <div class="nav-item" onclick="app.switchScreen('admin', this)"><i data-lucide="shield-check"></i> Modo Papi</div>
+        <nav id="sidebar-nav">
+            <div class="nav-item active" data-nav="home" onclick="app.switchScreen('home', this)"><i data-lucide="home"></i> Inicio</div>
+            <div class="nav-item" data-nav="arcade" onclick="app.switchScreen('arcade', this)"><i data-lucide="zap"></i> Aprendo Jugando</div>
+            <div class="nav-item" data-nav="study" onclick="app.switchScreen('study', this)"><i data-lucide="book-open"></i> Estudio</div>
+            <div class="nav-item" data-nav="social" onclick="app.switchScreen('social', this)"><i data-lucide="users"></i> Amigas 🔥</div>
+            <div class="nav-item" data-nav="stats" onclick="app.switchScreen('stats', this)"><i data-lucide="bar-chart-3"></i> Progreso</div>
+            <div class="nav-item" id="nav-item-admin" data-nav="admin" style="display:none;" onclick="app.switchScreen('admin', this)"><i data-lucide="shield-check"></i> Panel Maestro</div>
         </nav>
         <div style="margin-top: auto; padding: 1rem; background: var(--glass); border-radius: 20px; cursor:pointer;" onclick="app.showUserSelection()">
             <p style="font-size: 0.6rem; opacity: 0.5; margin-bottom: 0.2rem;">Perfil Activo</p>
@@ -783,6 +791,9 @@
                     <input type="password" id="login-password" class="arcade-input" style="font-size:1.1rem; padding:0.8rem; width:100%; max-width:100%; margin-bottom:1.5rem;" placeholder="Tu Contraseña o PIN" onkeyup="if(event.key==='Enter') app.handleLogin()">
                     <button class="btn" style="width:100%;" onclick="app.handleLogin()">🚀 ¡Entrar a Jugar!</button>
                     <div id="login-msg" style="margin-top:1rem; font-size:0.85rem; color:var(--error); display:none;"></div>
+                    <div style="margin-top:1.5rem; padding-top:1rem; border-top:1px solid rgba(255,255,255,0.08); font-size:0.8rem; opacity:0.7;">
+                        👨‍🏫 ¿Acceso Administrador / Padres? <a href="javascript:void(0)" onclick="document.getElementById('login-username').value='admin'; document.getElementById('login-password').focus();" style="color:var(--primary); font-weight:700;">Entrar como Admin</a>
+                    </div>
                 </div>
 
                 <!-- FORMULARIO REGISTRO -->
@@ -1308,76 +1319,116 @@
             </div>
         </div>
 
-        <!-- ADMIN MAESTRO (MODO PAPI) -->
+        <!-- ADMIN MAESTRO (PANEL DE CONTROL TOTAL) -->
         <div id="screen-admin" class="screen">
-            <div class="glass-card" id="admin-login-box" style="max-width:420px; margin:2rem auto; text-align:center;">
-                <div style="font-size:3rem; margin-bottom:0.5rem;">👨‍🏫</div>
-                <h2>Control de Padres / Admin</h2>
-                <p style="opacity:0.7; font-size:0.85rem; margin-bottom:1.5rem;">Introduce el PIN maestro para acceder a la supervisión global.</p>
-                <input type="password" id="admin-pass-input" class="arcade-input" style="font-size:2rem; width:100%; max-width:200px; margin:0 auto 1.5rem auto;" placeholder="PIN" onkeyup="if(event.key==='Enter') app.checkAdmin()">
-                <button class="btn" style="width:100%;" onclick="app.checkAdmin()">Entrar al Panel Maestro</button>
-            </div>
-
-            <div id="admin-main-panel" style="display:none; flex-direction:column; gap:1.5rem;">
-                <!-- Subtabs Admin -->
-                <div style="display:flex; gap:0.8rem; background:rgba(0,0,0,0.3); padding:0.4rem; border-radius:18px; max-width:650px;">
-                    <div class="segment active" id="tab-admin-students" onclick="app.switchAdminTab('students')">📊 Alumnas & Progreso</div>
-                    <div class="segment" id="tab-admin-ai" onclick="app.switchAdminTab('ai')">🔑 Clave IA Personal</div>
-                    <div class="segment" id="tab-admin-missions" onclick="app.switchAdminTab('missions')">🎯 Generador de Misiones</div>
+            <div id="admin-main-panel" style="display:flex; flex-direction:column; gap:1.5rem;">
+                <div class="glass-card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; padding:1.5rem 2rem;">
+                    <div style="display:flex; align-items:center; gap:1rem;">
+                        <span style="font-size:3rem;">🏛️</span>
+                        <div>
+                            <h2 style="font-size:1.8rem; font-weight:800; background:linear-gradient(to right, #a78bfa, #f472b6); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">Panel Maestro de Control</h2>
+                            <p style="opacity:0.7; font-size:0.85rem;">Supervisión global de alumnas, contraseñas, retos y contenidos</p>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:0.6rem;">
+                        <button class="btn" style="padding:0.5rem 1rem; font-size:0.8rem; background:rgba(255,255,255,0.08);" onclick="app.loadAdminStudents()"><i data-lucide="refresh-cw"></i> Actualizar</button>
+                    </div>
                 </div>
 
-                <!-- SUB-SECCIÓN 1: SUPERVISIÓN GLOBAL DE ALUMNAS -->
+                <!-- Subtabs Admin -->
+                <div style="display:flex; gap:0.8rem; background:rgba(0,0,0,0.3); padding:0.4rem; border-radius:18px; max-width:750px; overflow-x:auto;">
+                    <div class="segment active" id="tab-admin-students" onclick="app.switchAdminTab('students')">👥 Gestión de Alumnas</div>
+                    <div class="segment" id="tab-admin-security" onclick="app.switchAdminTab('security')">🔐 Seguridad Admin & IA</div>
+                    <div class="segment" id="tab-admin-battles" onclick="app.switchAdminTab('battles')">⚔️ Monitor de Batallas</div>
+                    <div class="segment" id="tab-admin-missions" onclick="app.switchAdminTab('missions')">🎯 Misiones de la Plataforma</div>
+                </div>
+
+                <!-- PESTAÑA 1: GESTIÓN DE ALUMNAS -->
                 <div id="admin-sub-students" style="display:flex; flex-direction:column; gap:1.5rem;">
+                    <!-- KPIs de la plataforma -->
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:1rem;">
+                        <div class="glass-card" style="padding:1.2rem; text-align:center;">
+                            <div style="font-size:0.8rem; opacity:0.6;">Alumnas Registradas</div>
+                            <div id="kpi-admin-total-students" style="font-size:2.2rem; font-weight:800; color:var(--primary);">0</div>
+                        </div>
+                        <div class="glass-card" style="padding:1.2rem; text-align:center;">
+                            <div style="font-size:0.8rem; opacity:0.6;">XP Total Generado</div>
+                            <div id="kpi-admin-total-xp" style="font-size:2.2rem; font-weight:800; color:#fbbf24;">0</div>
+                        </div>
+                        <div class="glass-card" style="padding:1.2rem; text-align:center;">
+                            <div style="font-size:0.8rem; opacity:0.6;">Líder de la Plataforma</div>
+                            <div id="kpi-admin-leader" style="font-size:1.4rem; font-weight:800; color:#38bdf8; margin-top:0.4rem;">-</div>
+                        </div>
+                    </div>
+
+                    <!-- Ficha Detallada de la Alumna Seleccionada -->
                     <div class="glass-card">
                         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
                             <div>
-                                <h3>Supervisión de Alumnas en la Nube</h3>
-                                <p style="opacity:0.7; font-size:0.85rem;">Selecciona a cualquiera de las alumnas registradas para ver sus detalles:</p>
+                                <h3>Ficha y Control de Alumna</h3>
+                                <p style="opacity:0.7; font-size:0.85rem;">Cambia contraseñas, edita XP, protectores o revisa fallos:</p>
                             </div>
-                            <select id="admin-student-select" class="arcade-input" style="font-size:1rem; padding:0.6rem 1rem; width:auto; min-width:220px;" onchange="app.renderAdminStudentDetail(this.value)">
+                            <select id="admin-student-select" class="arcade-input" style="font-size:1rem; padding:0.6rem 1rem; width:auto; min-width:240px;" onchange="app.renderAdminStudentDetail(this.value)">
                                 <option value="">Cargando alumnas...</option>
                             </select>
                         </div>
 
-                        <!-- Tarjeta de detalle de la alumna -->
-                        <div id="admin-student-card" style="display:none; background:rgba(255,255,255,0.03); border:1px solid var(--glass-border); border-radius:20px; padding:1.5rem;">
+                        <div id="admin-student-card" style="display:none; background:rgba(255,255,255,0.02); border:1px solid var(--glass-border); border-radius:20px; padding:1.5rem;">
                             <!-- Inyectado dinámicamente -->
                         </div>
                     </div>
 
-                    <!-- Lista general de alumnas -->
+                    <!-- Listado Completo de Alumnas -->
                     <div class="glass-card">
-                        <h4 style="margin-bottom:1rem;">Todas las Alumnas Registradas</h4>
+                        <h4 style="margin-bottom:1rem;">Lista de Alumnas Registradas en la Nube</h4>
                         <div id="admin-all-students-list" style="display:flex; flex-direction:column; gap:0.6rem;"></div>
                     </div>
                 </div>
 
-                <!-- SUB-SECCIÓN 2: CONFIGURACIÓN DE IA PERSONAL (POR CUENTA) -->
-                <div id="admin-sub-ai" style="display:none; flex-direction:column; gap:1.5rem;">
+                <!-- PESTAÑA 2: SEGURIDAD ADMIN & CLAVE IA -->
+                <div id="admin-sub-security" style="display:none; flex-direction:column; gap:1.5rem;">
+                    <!-- Cambiar Contraseña de Administrador -->
+                    <div class="glass-card">
+                        <h3 style="margin-bottom:0.5rem;">🔐 Contraseña de la Cuenta de Administrador</h3>
+                        <p style="opacity:0.7; font-size:0.85rem; margin-bottom:1.2rem;">Cambia la contraseña de tu usuario 'admin' (actualmente 'admin1234'):</p>
+                        <div style="display:flex; gap:1rem; max-width:500px;">
+                            <input type="password" id="admin-new-pass" class="arcade-input" style="font-size:1.1rem; padding:0.7rem; flex:1;" placeholder="Nueva contraseña segura...">
+                            <button class="btn" style="padding:0 1.5rem;" onclick="app.adminChangeOwnPassword()">Guardar</button>
+                        </div>
+                        <p id="admin-pass-change-msg" style="font-size:0.85rem; margin-top:0.8rem; font-weight:700;"></p>
+                    </div>
+
+                    <!-- Configuración IA Gemini -->
                     <div class="glass-card">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-                            <h3>Clave Personal de Google Gemini</h3>
+                            <h3>🔑 Clave Personal de Google Gemini (IA)</h3>
                             <div id="ai-status-dot" style="width:12px; height:12px; border-radius:50%; background:var(--error); box-shadow:0 0 10px var(--error);"></div>
                         </div>
                         <div style="background:rgba(139,92,246,0.1); border:1px solid rgba(139,92,246,0.3); padding:1rem; border-radius:14px; margin-bottom:1.5rem; font-size:0.85rem; line-height:1.5;">
-                            🛡️ <strong>Cuota 100% Protegida:</strong> Esta clave se guarda exclusivamente en este dispositivo para tu familia. Cada compañera o padre de la app usará su propia clave si lo desea, garantizando que nadie consuma tu saldo ni genere costes a tu cuenta.
+                            🛡️ <strong>Tu cuota está protegida:</strong> Cada familia introduce su propia clave gratuita de Google Gemini. Tu clave no se comparte ni permite que otros usuarios gasten saldo de tu cuenta de Google.
                         </div>
                         <div style="margin-bottom: 1.5rem;">
-                            <label style="font-size: 0.8rem; opacity: 0.6;">Introduce tu Google Gemini API Key</label>
+                            <label style="font-size: 0.8rem; opacity: 0.6;">Tu API Key de Gemini</label>
                             <input type="password" id="admin-api-key" class="admin-input" placeholder="AIzaSy...">
                             <div style="display:flex; gap:0.5rem; margin-top:0.8rem;">
-                                <button class="btn" style="flex:1; font-size: 0.85rem; padding: 0.6rem;" onclick="app.saveApiKey()">💾 Guardar Clave Personal</button>
+                                <button class="btn" style="flex:1; font-size: 0.85rem; padding: 0.6rem;" onclick="app.saveApiKey()">💾 Guardar Clave</button>
                                 <button class="btn" style="flex:1; font-size: 0.85rem; padding: 0.6rem; background:var(--accent);" onclick="app.testApiKey()">🔍 Probar Conexión</button>
                             </div>
                             <p id="api-test-result" style="font-size:0.8rem; margin-top:0.8rem; font-weight:700;"></p>
                         </div>
-                        <div style="font-size:0.8rem; opacity:0.6;">
-                            ¿No tienes clave aún? Se obtiene gratis en <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--accent);">Google AI Studio</a> en 1 minuto.
-                        </div>
                     </div>
                 </div>
 
-                <!-- SUB-SECCIÓN 3: MISIONES Y GENERADOR -->
+                <!-- PESTAÑA 3: MONITOR DE BATALLAS / RETOS -->
+                <div id="admin-sub-battles" style="display:none; flex-direction:column; gap:1.5rem;">
+                    <div class="glass-card">
+                        <h3 style="margin-bottom:0.5rem;">⚔️ Monitor de Retos entre Alumnas</h3>
+                        <p style="opacity:0.7; font-size:0.85rem; margin-bottom:1.5rem;">Revisa todas las partidas de cálculo mental jugadas entre compañeras:</p>
+                        <div id="admin-battles-list" style="display:flex; flex-direction:column; gap:0.8rem;"></div>
+                    </div>
+                </div>
+
+                <!-- PESTAÑA 4: MISIONES DE LA PLATAFORMA -->
                 <div id="admin-sub-missions" style="display:none; flex-direction:column; gap:1.5rem;">
                     <div class="glass-card">
                         <h3>Generador de Misiones con Aprendizaje Guiado</h3>
@@ -2260,26 +2311,72 @@
             },
 
             // --- PANEL DE CONTROL MAESTRO (SUPERVISIÓN GLOBAL) ---
+            currentAdminTab: 'students',
+            adminStudentsList: [],
+            originalAdminSession: null,
+            impersonating: false,
+            isAdmin: false,
+
+            setupAdminInterface() {
+                this.isAdmin = true;
+                const navAdmin = document.getElementById('nav-item-admin');
+                if(navAdmin) navAdmin.style.display = 'flex';
+                const sbUser = document.getElementById('sidebar-user-name');
+                if(sbUser) sbUser.textContent = "Admin";
+                const avEl = document.getElementById('sidebar-user-avatar');
+                if(avEl) avEl.textContent = '👨‍🏫';
+                document.getElementById('main-header').style.visibility = 'visible';
+                document.getElementById('sidebar').style.display = 'flex';
+
+                const sc = document.getElementById('header-streak-count');
+                const sh = document.getElementById('header-shield-count');
+                if(sc) sc.textContent = '👑';
+                if(sh) sh.textContent = '∞';
+
+                const keyInput = document.getElementById('admin-api-key');
+                if(keyInput) keyInput.value = this.getApiKey();
+
+                this.switchAdminTab(this.currentAdminTab || 'students');
+            },
+
+            setupStudentInterface() {
+                this.isAdmin = false;
+                if(!this.impersonating) {
+                    const navAdmin = document.getElementById('nav-item-admin');
+                    if(navAdmin) navAdmin.style.display = 'none';
+                }
+                document.getElementById('main-header').style.visibility = 'visible';
+                document.getElementById('sidebar').style.display = 'flex';
+            },
+
             switchAdminTab(tab) {
+                this.currentAdminTab = tab;
                 const ts = document.getElementById('tab-admin-students');
-                const ta = document.getElementById('tab-admin-ai');
+                const tsec = document.getElementById('tab-admin-security');
+                const tb = document.getElementById('tab-admin-battles');
                 const tm = document.getElementById('tab-admin-missions');
                 if(ts) ts.classList.toggle('active', tab === 'students');
-                if(ta) ta.classList.toggle('active', tab === 'ai');
+                if(tsec) tsec.classList.toggle('active', tab === 'security');
+                if(tb) tb.classList.toggle('active', tab === 'battles');
                 if(tm) tm.classList.toggle('active', tab === 'missions');
 
                 const as = document.getElementById('admin-sub-students');
-                const aa = document.getElementById('admin-sub-ai');
+                const asec = document.getElementById('admin-sub-security');
+                const ab = document.getElementById('admin-sub-battles');
                 const am = document.getElementById('admin-sub-missions');
                 if(as) as.style.display = tab === 'students' ? 'flex' : 'none';
-                if(aa) aa.style.display = tab === 'ai' ? 'flex' : 'none';
+                if(asec) asec.style.display = tab === 'security' ? 'flex' : 'none';
+                if(ab) ab.style.display = tab === 'battles' ? 'flex' : 'none';
                 if(am) am.style.display = tab === 'missions' ? 'flex' : 'none';
 
                 if(tab === 'students') this.loadAdminStudents();
-                if(tab === 'ai') {
+                if(tab === 'security') {
                     const keyInput = document.getElementById('admin-api-key');
                     if(keyInput) keyInput.value = this.getApiKey();
+                    const msg = document.getElementById('admin-pass-change-msg');
+                    if(msg) msg.textContent = '';
                 }
+                if(tab === 'battles') this.loadAdminBattles();
                 if(tab === 'missions') this.renderAdminMissions();
             },
 
@@ -2305,31 +2402,54 @@
 
                     this.adminStudentsList = students;
 
+                    const nonAdmins = students.filter(s => s.role !== 'admin' && s.username.toLowerCase() !== 'admin');
+                    const totalXP = nonAdmins.reduce((acc, cur) => acc + (cur.xp || 0), 0);
+                    const leader = nonAdmins.length > 0 ? nonAdmins[0] : null;
+
+                    const kpiStudents = document.getElementById('kpi-admin-total-students');
+                    const kpiXP = document.getElementById('kpi-admin-total-xp');
+                    const kpiLeader = document.getElementById('kpi-admin-leader');
+
+                    if(kpiStudents) kpiStudents.textContent = nonAdmins.length;
+                    if(kpiXP) kpiXP.textContent = totalXP.toLocaleString();
+                    if(kpiLeader) kpiLeader.textContent = leader ? `${leader.avatar || '👧'} ${leader.username} (${leader.xp} XP)` : '-';
+
                     select.innerHTML = '<option value="">-- Elige una alumna para supervisar --</option>' +
-                        students.map(s => `<option value="${s.id}">${s.avatar || '👧'} ${s.username} (${s.grade}) - ${s.xp} XP</option>`).join('');
+                        students.map(s => `<option value="${s.id}">${s.avatar || '👧'} ${s.username} (${s.grade}) - ${s.xp} XP ${s.role === 'admin' ? '[ADMIN]' : ''}</option>`).join('');
 
                     let html = '';
                     students.forEach(s => {
+                        const isAdminRow = s.role === 'admin' || s.username.toLowerCase() === 'admin';
                         html += `
-                            <div class="social-user-row" style="cursor:pointer;" onclick="document.getElementById('admin-student-select').value='${s.id}'; app.renderAdminStudentDetail('${s.id}')">
+                            <div class="social-user-row" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; padding:1rem;" onclick="document.getElementById('admin-student-select').value='${s.id}'; app.renderAdminStudentDetail('${s.id}')">
                                 <div style="display:flex; align-items:center; gap:1rem;">
                                     <span style="font-size:2rem;">${s.avatar || '👧'}</span>
                                     <div>
-                                        <div style="font-weight:700; font-size:1.05rem;">${s.username}</div>
-                                        <div style="font-size:0.8rem; opacity:0.6;">${s.grade} · Nivel ${s.level} · Última conexión: ${s.last_active_date || 'Hoy'}</div>
+                                        <div style="display:flex; align-items:center; gap:0.5rem;">
+                                            <span style="font-weight:700; font-size:1.05rem;">${s.username}</span>
+                                            ${isAdminRow ? '<span style="background:rgba(236,72,153,0.2); color:#f472b6; font-size:0.7rem; padding:0.1rem 0.5rem; border-radius:6px; font-weight:700;">ADMIN</span>' : ''}
+                                            <span style="font-family:monospace; font-size:0.8rem; background:rgba(0,0,0,0.3); padding:0.1rem 0.4rem; border-radius:4px; opacity:0.7;">🔑 ${s.password}</span>
+                                        </div>
+                                        <div style="font-size:0.8rem; opacity:0.6;">${s.grade} · Nivel ${s.level} · Actividad: ${s.last_active_date || 'Hoy'}</div>
                                     </div>
                                 </div>
-                                <div style="display:flex; align-items:center; gap:1.5rem;">
+                                <div style="display:flex; align-items:center; gap:1.2rem; flex-wrap:wrap;">
                                     <span style="color:#fbbf24; font-weight:800;">🔥 ${s.streak_count}d</span>
-                                    <span style="color:#38bdf8; font-weight:800;">🧊 ${s.streak_shields} escudos</span>
+                                    <span style="color:#38bdf8; font-weight:800;">🧊 ${s.streak_shields} esc.</span>
                                     <span style="font-weight:800; font-size:1.1rem; color:white;">${s.xp} XP</span>
+                                    <div style="display:flex; gap:0.4rem;">
+                                        <button class="btn" style="padding:0.3rem 0.7rem; font-size:0.75rem; background:rgba(255,255,255,0.08);" title="Cambiar Contraseña" onclick="event.stopPropagation(); app.adminUpdateStudentPassword('${s.id}', '${s.username}')">🔑</button>
+                                        <button class="btn" style="padding:0.3rem 0.7rem; font-size:0.75rem; background:rgba(255,255,255,0.08);" title="Editar XP" onclick="event.stopPropagation(); app.adminUpdateStudentXP('${s.id}', '${s.username}')">💎</button>
+                                        ${!isAdminRow ? `<button class="btn" style="padding:0.3rem 0.7rem; font-size:0.75rem; background:rgba(16,185,129,0.2); color:#34d399;" title="Supervisar" onclick="event.stopPropagation(); app.impersonateStudent('${s.username}')">👀</button>` : ''}
+                                        ${!isAdminRow ? `<button class="btn" style="padding:0.3rem 0.7rem; font-size:0.75rem; background:rgba(239,68,68,0.2); color:#fca5a5;" title="Eliminar" onclick="event.stopPropagation(); app.adminDeleteStudent('${s.id}', '${s.username}')">🗑️</button>` : ''}
+                                    </div>
                                 </div>
                             </div>
                         `;
                     });
                     listEl.innerHTML = html;
 
-                    const defaultStudent = students.find(s => this.cloudUser && s.id === this.cloudUser.id) || students[0];
+                    const defaultStudent = nonAdmins[0] || students[0];
                     if(defaultStudent) {
                         select.value = defaultStudent.id;
                         this.renderAdminStudentDetail(defaultStudent.id);
@@ -2369,17 +2489,28 @@
                     failsHtml = '<p style="opacity:0.6; font-size:0.85rem;">¡No hay fallos recientes registrados! Su rendimiento es excelente.</p>';
                 }
 
+                const isStudentAdmin = (s.role === 'admin' || s.username.toLowerCase() === 'admin');
+
                 card.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:1.5rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1.2rem; margin-bottom:1.5rem; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:1.5rem;">
                         <div style="display:flex; align-items:center; gap:1.2rem;">
                             <span style="font-size:3.5rem;">${s.avatar || '👧'}</span>
                             <div>
-                                <h2 style="font-size:1.8rem; font-weight:800; color:white;">${s.username}</h2>
-                                <p style="opacity:0.7; font-size:0.9rem;">${s.grade} · Nivel ${s.level} · Registrada: ${new Date(s.created_at).toLocaleDateString()}</p>
+                                <div style="display:flex; align-items:center; gap:0.6rem;">
+                                    <h2 style="font-size:1.8rem; font-weight:800; color:white; margin:0;">${s.username}</h2>
+                                    ${isStudentAdmin ? '<span style="background:linear-gradient(135deg,#ec4899,#8b5cf6); color:white; padding:0.2rem 0.6rem; border-radius:8px; font-size:0.75rem; font-weight:700;">ADMIN</span>' : ''}
+                                </div>
+                                <p style="opacity:0.7; font-size:0.9rem; margin-top:0.3rem;">${s.grade} · Nivel ${s.level} · Registrada: ${s.created_at ? new Date(s.created_at).toLocaleDateString() : 'Recientemente'}</p>
+                                <div style="margin-top:0.5rem; font-size:0.85rem;">
+                                    🔑 Contraseña actual: <span style="font-family:monospace; font-weight:700; background:rgba(0,0,0,0.4); padding:0.2rem 0.6rem; border-radius:6px; color:#38bdf8; border:1px solid rgba(56,189,248,0.3);">${s.password || 'Sin clave'}</span>
+                                </div>
                             </div>
                         </div>
-                        <div style="display:flex; gap:0.8rem;">
-                            <button class="btn" style="padding:0.5rem 1rem; font-size:0.8rem; background:linear-gradient(135deg, #0284c7, #06b6d4);" onclick="app.adminGiftShield('${s.id}')">🎁 Regalar +1 🧊 Protector</button>
+                        <div style="display:flex; flex-wrap:wrap; gap:0.6rem;">
+                            <button class="btn" style="padding:0.5rem 1rem; font-size:0.8rem; background:linear-gradient(135deg, #8b5cf6, #ec4899);" onclick="app.adminUpdateStudentPassword('${s.id}', '${s.username}')">🔑 Cambiar Contraseña</button>
+                            <button class="btn" style="padding:0.5rem 1rem; font-size:0.8rem; background:linear-gradient(135deg, #f59e0b, #d97706);" onclick="app.adminUpdateStudentXP('${s.id}', '${s.username}')">💎 Modificar XP</button>
+                            ${!isStudentAdmin ? `<button class="btn" style="padding:0.5rem 1rem; font-size:0.8rem; background:linear-gradient(135deg, #10b981, #059669);" onclick="app.impersonateStudent('${s.username}')">👀 Ver como ${s.username}</button>` : ''}
+                            ${!isStudentAdmin ? `<button class="btn" style="padding:0.5rem 1rem; font-size:0.8rem; background:rgba(239,68,68,0.2); color:#fca5a5; border:1px solid rgba(239,68,68,0.4);" onclick="app.adminDeleteStudent('${s.id}', '${s.username}')">🗑️ Borrar</button>` : ''}
                         </div>
                     </div>
 
@@ -2394,7 +2525,11 @@
                         </div>
                         <div style="background:rgba(255,255,255,0.04); border-radius:16px; padding:1rem; text-align:center;">
                             <div style="font-size:0.8rem; opacity:0.6;">Protectores 🧊</div>
-                            <div style="font-size:1.8rem; font-weight:800; color:#38bdf8;">${s.streak_shields}</div>
+                            <div style="font-size:1.8rem; font-weight:800; color:#38bdf8; display:flex; align-items:center; justify-content:center; gap:0.5rem;">
+                                <span>${s.streak_shields}</span>
+                                <button onclick="app.adminAdjustShields('${s.id}', 1)" style="border:none; background:rgba(56,189,248,0.2); color:#38bdf8; border-radius:6px; cursor:pointer; padding:0.1rem 0.5rem; font-size:1rem; font-weight:800;">+</button>
+                                <button onclick="app.adminAdjustShields('${s.id}', -1)" style="border:none; background:rgba(239,68,68,0.2); color:#fca5a5; border-radius:6px; cursor:pointer; padding:0.1rem 0.5rem; font-size:1rem; font-weight:800;">-</button>
+                            </div>
                         </div>
                         <div style="background:rgba(255,255,255,0.04); border-radius:16px; padding:1rem; text-align:center;">
                             <div style="font-size:0.8rem; opacity:0.6;">Última Actividad</div>
@@ -2409,14 +2544,183 @@
                 `;
             },
 
-            async adminGiftShield(studentId) {
+            async adminUpdateStudentPassword(studentId, studentUsername) {
+                const newPass = prompt(`Introduce la nueva contraseña para '${studentUsername}':`);
+                if(newPass === null) return;
+                const trimmed = newPass.trim();
+                if(trimmed.length < 3) {
+                    this.notify("❌ Error", "La contraseña debe tener al menos 3 caracteres.");
+                    return;
+                }
+                try {
+                    const { error } = await sb.from('profiles').update({ password: trimmed }).eq('id', studentId);
+                    if(error) throw error;
+                    this.notify("✅ Contraseña Actualizada", `Nueva contraseña para ${studentUsername}: ${trimmed}`);
+                    await this.loadAdminStudents();
+                } catch(e) {
+                    this.notify("❌ Error", "No se pudo actualizar la contraseña: " + e.message);
+                }
+            },
+
+            async adminUpdateStudentXP(studentId, studentUsername) {
+                const s = (this.adminStudentsList || []).find(st => st.id === studentId);
+                const currentXP = s ? s.xp : 0;
+                const newXPStr = prompt(`Introduce los nuevos puntos XP para '${studentUsername}':`, currentXP);
+                if(newXPStr === null) return;
+                const newXP = parseInt(newXPStr, 10);
+                if(isNaN(newXP) || newXP < 0) {
+                    this.notify("❌ Error", "Introduce un número válido mayor o igual a 0.");
+                    return;
+                }
+                const newLvl = Math.max(1, Math.floor(newXP / 150) + 1);
+                try {
+                    const { error } = await sb.from('profiles').update({ xp: newXP, level: newLvl }).eq('id', studentId);
+                    if(error) throw error;
+                    this.notify("💎 XP Modificado", `${studentUsername} ahora tiene ${newXP} XP (Nivel ${newLvl}).`);
+                    await this.loadAdminStudents();
+                } catch(e) {
+                    this.notify("❌ Error", "No se pudo actualizar el XP: " + e.message);
+                }
+            },
+
+            async adminAdjustShields(studentId, delta) {
                 const s = (this.adminStudentsList || []).find(st => st.id === studentId);
                 if(!s) return;
-                const newShields = (s.streak_shields || 0) + 1;
-                s.streak_shields = newShields;
-                await sb.from('profiles').update({ streak_shields: newShields }).eq('id', studentId);
-                this.renderAdminStudentDetail(studentId);
-                this.notify("🎁 Regalo Enviado", `¡Has regalado un protector de racha 🧊 a ${s.username}!`);
+                const newShields = Math.max(0, (s.streak_shields || 0) + delta);
+                try {
+                    const { error } = await sb.from('profiles').update({ streak_shields: newShields }).eq('id', studentId);
+                    if(error) throw error;
+                    s.streak_shields = newShields;
+                    this.renderAdminStudentDetail(studentId);
+                    this.notify("🧊 Protectores", `${s.username} ahora tiene ${newShields} protectores de racha.`);
+                } catch(e) {
+                    this.notify("❌ Error", e.message);
+                }
+            },
+
+            async adminDeleteStudent(studentId, studentUsername) {
+                if(!confirm(`⚠️ ¿ESTÁS SEGURO de eliminar a '${studentUsername}'?\n\nEsta acción borrará definitivamente su perfil, XP y rachas de la base de datos.`)) return;
+                try {
+                    const { error } = await sb.from('profiles').delete().eq('id', studentId);
+                    if(error) throw error;
+                    this.notify("🗑️ Alumna Eliminada", `Se ha borrado a ${studentUsername}.`);
+                    await this.loadAdminStudents();
+                } catch(e) {
+                    this.notify("❌ Error al borrar", e.message);
+                }
+            },
+
+            async adminChangeOwnPassword() {
+                const newPassInput = document.getElementById('admin-new-pass');
+                const msgEl = document.getElementById('admin-pass-change-msg');
+                if(!newPassInput) return;
+                const newPass = newPassInput.value.trim();
+                if(newPass.length < 4) {
+                    if(msgEl) {
+                        msgEl.textContent = "❌ La contraseña debe tener al menos 4 caracteres.";
+                        msgEl.style.color = "var(--error)";
+                    }
+                    return;
+                }
+                if(!this.cloudUser) return;
+                try {
+                    const { error } = await sb.from('profiles').update({ password: newPass }).eq('id', this.cloudUser.id);
+                    if(error) throw error;
+                    this.cloudUser.password = newPass;
+                    localStorage.setItem('lara_cloud_session', JSON.stringify(this.cloudUser));
+                    newPassInput.value = '';
+                    if(msgEl) {
+                        msgEl.textContent = "✅ ¡Contraseña de Administrador actualizada con éxito!";
+                        msgEl.style.color = "var(--success)";
+                    }
+                    this.notify("🔐 Seguridad", "Contraseña de Admin actualizada.");
+                } catch(e) {
+                    if(msgEl) {
+                        msgEl.textContent = "❌ Error: " + e.message;
+                        msgEl.style.color = "var(--error)";
+                    }
+                }
+            },
+
+            async impersonateStudent(studentUsername) {
+                if(!this.adminStudentsList || this.adminStudentsList.length === 0) await this.loadAdminStudents();
+                const student = (this.adminStudentsList || []).find(st => st.username === studentUsername);
+                if(!student) {
+                    this.notify("❌ Error", "No se encontró el perfil de " + studentUsername);
+                    return;
+                }
+
+                if(!this.impersonating) {
+                    this.originalAdminSession = this.cloudUser;
+                }
+                this.impersonating = true;
+
+                const bar = document.getElementById('admin-impersonation-bar');
+                if(bar) bar.style.display = 'flex';
+                const nameEl = document.getElementById('impersonated-student-name');
+                if(nameEl) nameEl.textContent = `${student.avatar || '👧'} ${student.username}`;
+
+                await this.syncAndLoadCloudUser(student.id, true);
+                this.notify("👀 Modo Supervisión", `Ahora estás viendo la app como ${student.username}.`);
+            },
+
+            async exitImpersonation() {
+                const bar = document.getElementById('admin-impersonation-bar');
+                if(bar) bar.style.display = 'none';
+
+                this.impersonating = false;
+                if(this.originalAdminSession) {
+                    this.cloudUser = this.originalAdminSession;
+                    this.originalAdminSession = null;
+                }
+                this.setupAdminInterface();
+                this.switchScreen('admin', document.getElementById('nav-item-admin'));
+                this.notify("🏛️ Panel Maestro", "Has vuelto al modo administrador.");
+            },
+
+            async loadAdminBattles() {
+                const list = document.getElementById('admin-battles-list');
+                if(!list) return;
+                list.innerHTML = '<div class="loader"></div>';
+                try {
+                    const { data: challenges, error } = await sb
+                        .from('challenges')
+                        .select('*')
+                        .order('created_at', { ascending: false })
+                        .limit(30);
+
+                    if(error || !challenges || challenges.length === 0) {
+                        list.innerHTML = '<p style="opacity:0.6; padding:1rem; text-align:center;">No hay batallas ni retos registrados aún.</p>';
+                        return;
+                    }
+
+                    let html = '';
+                    challenges.forEach(c => {
+                        const statusBadge = c.status === 'completed' 
+                            ? `<span style="background:rgba(16,185,129,0.2); color:#34d399; padding:0.2rem 0.6rem; border-radius:8px; font-size:0.75rem; font-weight:700;">🏆 Finalizada</span>`
+                            : `<span style="background:rgba(245,158,11,0.2); color:#fbbf24; padding:0.2rem 0.6rem; border-radius:8px; font-size:0.75rem; font-weight:700;">⏳ Pendiente</span>`;
+                        const winnerInfo = c.winner_username ? ` · Ganadora: <strong style="color:#34d399;">${c.winner_username}</strong>` : '';
+                        html += `
+                            <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:14px; padding:1rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.8rem;">
+                                <div>
+                                    <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.3rem;">
+                                        <span style="font-weight:700; font-size:1rem;">⚔️ ${c.sender_username} vs ${c.receiver_username}</span>
+                                        ${statusBadge}
+                                    </div>
+                                    <div style="font-size:0.85rem; opacity:0.7;">
+                                        Puntuación: <strong>${c.sender_username}</strong> (${c.sender_score || 0} pts) - <strong>${c.receiver_username}</strong> (${c.receiver_score || 0} pts)${winnerInfo}
+                                    </div>
+                                </div>
+                                <div style="font-size:0.75rem; opacity:0.5;">
+                                    ${c.created_at ? new Date(c.created_at).toLocaleString() : ''}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    list.innerHTML = html;
+                } catch(e) {
+                    list.innerHTML = `<p style="color:var(--error);">Error al cargar batallas: ${e.message}</p>`;
+                }
             },
 
             renderAdminMissions() {
@@ -2510,6 +2814,14 @@
                     return;
                 }
 
+                const reservedNames = ['admin', 'administrador', 'administradora', 'root', 'papa', 'mama', 'profesor', 'maestro'];
+                if(reservedNames.includes(username.toLowerCase())) {
+                    msg.textContent = `El nombre '${username}' está reservado para la administración.`;
+                    msg.style.color = "var(--error)";
+                    msg.style.display = 'block';
+                    return;
+                }
+
                 msg.textContent = "Creando cuenta en la nube...";
                 msg.style.color = "var(--primary)";
                 msg.style.display = 'block';
@@ -2534,6 +2846,7 @@
                             password: password,
                             grade: grade,
                             avatar: avatar,
+                            role: 'student',
                             xp: 0,
                             level: 1,
                             streak_count: 1,
@@ -2548,6 +2861,7 @@
                     }
 
                     this.cloudUser = newProfile;
+                    this.isAdmin = false;
                     localStorage.setItem('lara_cloud_session', JSON.stringify(newProfile));
                     this.notify("🎉 ¡Bienvenida!", `Cuenta creada para ${username}.`);
                     await this.syncAndLoadCloudUser(newProfile.id);
@@ -2587,8 +2901,16 @@
 
                     this.cloudUser = profile;
                     localStorage.setItem('lara_cloud_session', JSON.stringify(profile));
-                    this.notify("👋 ¡Hola de nuevo!", `Bienvenida, ${profile.username}.`);
-                    await this.syncAndLoadCloudUser(profile.id);
+
+                    const isAdmin = (profile.role === 'admin' || profile.username.toLowerCase() === 'admin');
+                    if(isAdmin) {
+                        this.notify("👨‍🏫 Modo Administrador", "Bienvenido al Panel Maestro.");
+                        this.setupAdminInterface();
+                        this.switchScreen('admin', document.getElementById('nav-item-admin'));
+                    } else {
+                        this.notify("👋 ¡Hola de nuevo!", `Bienvenida, ${profile.username}.`);
+                        await this.syncAndLoadCloudUser(profile.id);
+                    }
                 } catch(e) {
                     msg.textContent = `Error: ${e.message}`;
                     msg.style.color = "var(--error)";
@@ -2596,13 +2918,22 @@
             },
 
             logout() {
+                if(this.impersonating) {
+                    const bar = document.getElementById('admin-impersonation-bar');
+                    if(bar) bar.style.display = 'none';
+                    this.impersonating = false;
+                    this.originalAdminSession = null;
+                }
                 this.cloudUser = null;
+                this.isAdmin = false;
                 localStorage.removeItem('lara_cloud_session');
+                const navAdmin = document.getElementById('nav-item-admin');
+                if(navAdmin) navAdmin.style.display = 'none';
                 this.showUserSelection();
                 this.notify("🔒 Sesión Cerrada", "Hasta la próxima.");
             },
 
-            async syncAndLoadCloudUser(userId) {
+            async syncAndLoadCloudUser(userId, isImpersonating = false) {
                 try {
                     const { data: profile, error } = await sb
                         .from('profiles')
@@ -2611,38 +2942,50 @@
                         .maybeSingle();
 
                     if(profile) {
-                        const today = new Date().toISOString().split('T')[0];
-                        const lastDate = profile.last_active_date || today;
-                        const diffDays = Math.floor((new Date(today) - new Date(lastDate)) / (1000 * 60 * 60 * 24));
-                        
-                        let streakUpdated = false;
-                        if(diffDays === 1) {
-                            profile.streak_count = (profile.streak_count || 0) + 1;
-                            profile.last_active_date = today;
-                            streakUpdated = true;
-                        } else if(diffDays > 1) {
-                            if((profile.streak_shields || 0) > 0) {
-                                profile.streak_shields -= 1;
+                        const isAdmin = (profile.role === 'admin' || profile.username.toLowerCase() === 'admin');
+
+                        if(isAdmin && !isImpersonating) {
+                            this.cloudUser = profile;
+                            localStorage.setItem('lara_cloud_session', JSON.stringify(profile));
+                            this.setupAdminInterface();
+                            this.switchScreen('admin', document.getElementById('nav-item-admin'));
+                            return;
+                        }
+
+                        if(!isImpersonating) {
+                            const today = new Date().toISOString().split('T')[0];
+                            const lastDate = profile.last_active_date || today;
+                            const diffDays = Math.floor((new Date(today) - new Date(lastDate)) / (1000 * 60 * 60 * 24));
+                            
+                            let streakUpdated = false;
+                            if(diffDays === 1) {
+                                profile.streak_count = (profile.streak_count || 0) + 1;
                                 profile.last_active_date = today;
                                 streakUpdated = true;
-                                setTimeout(() => this.notify("🧊 ¡Protector de Racha Activado!", `Se consumió 1 protector. ¡Tu racha de ${profile.streak_count} días sigue a salvo!`), 1000);
-                            } else {
-                                profile.streak_count = 1;
-                                profile.last_active_date = today;
-                                streakUpdated = true;
+                            } else if(diffDays > 1) {
+                                if((profile.streak_shields || 0) > 0) {
+                                    profile.streak_shields -= 1;
+                                    profile.last_active_date = today;
+                                    streakUpdated = true;
+                                    setTimeout(() => this.notify("🧊 ¡Protector de Racha Activado!", `Se consumió 1 protector. ¡Tu racha de ${profile.streak_count} días sigue a salvo!`), 1000);
+                                } else {
+                                    profile.streak_count = 1;
+                                    profile.last_active_date = today;
+                                    streakUpdated = true;
+                                }
                             }
-                        }
 
-                        if(streakUpdated) {
-                            await sb.from('profiles').update({
-                                streak_count: profile.streak_count,
-                                streak_shields: profile.streak_shields,
-                                last_active_date: profile.last_active_date
-                            }).eq('id', profile.id);
-                        }
+                            if(streakUpdated) {
+                                await sb.from('profiles').update({
+                                    streak_count: profile.streak_count,
+                                    streak_shields: profile.streak_shields,
+                                    last_active_date: profile.last_active_date
+                                }).eq('id', profile.id);
+                            }
 
-                        this.cloudUser = profile;
-                        localStorage.setItem('lara_cloud_session', JSON.stringify(profile));
+                            this.cloudUser = profile;
+                            localStorage.setItem('lara_cloud_session', JSON.stringify(profile));
+                        }
 
                         const n = profile.username;
                         this.data.active = n;
@@ -2664,6 +3007,10 @@
                         const avEl = document.getElementById('sidebar-user-avatar'); if(avEl) avEl.textContent = profile.avatar || '⚡';
                         document.getElementById('main-header').style.visibility = 'visible';
                         document.getElementById('sidebar').style.display = 'flex';
+                        
+                        if(!isImpersonating) {
+                            this.setupStudentInterface();
+                        }
                         
                         this.updateXP();
                         this.updateHeaderStreak();
