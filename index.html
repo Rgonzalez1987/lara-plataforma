@@ -2,7 +2,13 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Lara Platform">
+    <meta name="theme-color" content="#070b14">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="bg.png">
     <title>Lara | Excellence Learning Platform</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -220,6 +226,104 @@
             transition: 0.2s;
         }
         .challenge-card:hover { border-color: var(--secondary); background: rgba(236, 72, 153, 0.05); }
+
+        /* Numpad Táctil para iPad & Tablet */
+        .arcade-numpad-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.8rem;
+            max-width: 320px;
+            margin: 1.5rem auto 0 auto;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        .numpad-btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 2px solid var(--glass-border);
+            border-radius: 20px;
+            color: white;
+            font-size: 2.1rem;
+            font-weight: 800;
+            height: 68px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.2s;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .numpad-btn:active {
+            transform: scale(0.92);
+            background: var(--primary);
+            box-shadow: 0 0 20px var(--primary);
+        }
+        .numpad-btn.numpad-del {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            font-size: 1.6rem;
+        }
+        .numpad-btn.numpad-enter {
+            background: linear-gradient(135deg, #10b981, #06b6d4);
+            border: none;
+            color: white;
+            font-size: 1.8rem;
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
+        }
+
+        /* Responsive Tablet & Mobile Media Queries */
+        @media (max-width: 860px) {
+            body {
+                flex-direction: column !important;
+                overflow-y: auto !important;
+                height: 100vh !important;
+            }
+            aside {
+                width: 100% !important;
+                height: auto !important;
+                flex-direction: row !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                padding: 0.8rem 1rem !important;
+                border-right: none !important;
+                border-bottom: 1px solid var(--glass-border) !important;
+                position: sticky !important;
+                top: 0 !important;
+                z-index: 200 !important;
+            }
+            aside .logo {
+                margin-bottom: 0 !important;
+                font-size: 1.1rem !important;
+            }
+            aside nav {
+                display: flex !important;
+                gap: 0.3rem !important;
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+            }
+            aside .nav-item {
+                padding: 0.5rem 0.8rem !important;
+                font-size: 0.8rem !important;
+                margin-bottom: 0 !important;
+                white-space: nowrap !important;
+            }
+            main {
+                padding: 1.2rem !important;
+                overflow-y: visible !important;
+            }
+            .dash-grid {
+                grid-template-columns: 1fr !important;
+            }
+            .op-text {
+                font-size: 4rem !important;
+            }
+            .arcade-input {
+                font-size: 2.2rem !important;
+                max-width: 220px !important;
+            }
+        }
 
         /* New Premium Progress Dashboard Styles */
         .kpi-grid {
@@ -869,16 +973,34 @@
                     <button class="btn" style="padding:0.5rem 1rem; font-size:0.7rem; background:var(--glass-strong);" onclick="app.switchScreen('arcade')">❌ Salir</button>
                     <div id="arcade-timer" style="font-size: 2.5rem; font-weight: 900; color: var(--secondary); font-variant-numeric: tabular-nums;">60.00</div>
                     <div id="arcade-input-selector" style="display:flex; gap:0.4rem; background:rgba(0,0,0,0.3); padding:0.3rem; border-radius:12px;">
-                        <div class="segment active" data-i="kb" onclick="app.setInput('kb')">⌨️</div>
-                        <div class="segment" data-i="ms" onclick="app.setInput('ms')">🖱️</div>
+                        <div class="segment active" data-i="pad" onclick="app.setInput('pad')">📱 Numpad</div>
+                        <div class="segment" data-i="kb" onclick="app.setInput('kb')">⌨️ Teclado</div>
+                        <div class="segment" data-i="ms" onclick="app.setInput('ms')">🖱️ Opciones</div>
                     </div>
                 </div>
                 <div id="arcade-math-zone">
                     <div class="op-text" id="op-text">?</div>
                     <div id="arcade-input-box" style="display:flex; gap:1rem; justify-content:center; align-items:center;">
-                        <input type="number" class="arcade-input" id="arcade-input" placeholder="?">
+                        <input type="text" class="arcade-input" id="arcade-input" placeholder="?" readonly inputmode="none">
                         <button class="btn" style="background:var(--error); padding: 1.2rem;" onclick="app.stopArcade()"><i data-lucide="square"></i></button>
                     </div>
+
+                    <!-- TECLADO NUMÉRICO TÁCTIL PARA IPAD/TABLET -->
+                    <div id="arcade-numpad" class="arcade-numpad-grid">
+                        <button class="numpad-btn" onclick="app.pressNumpad('1')">1</button>
+                        <button class="numpad-btn" onclick="app.pressNumpad('2')">2</button>
+                        <button class="numpad-btn" onclick="app.pressNumpad('3')">3</button>
+                        <button class="numpad-btn" onclick="app.pressNumpad('4')">4</button>
+                        <button class="numpad-btn" onclick="app.pressNumpad('5')">5</button>
+                        <button class="numpad-btn" onclick="app.pressNumpad('6')">6</button>
+                        <button class="numpad-btn" onclick="app.pressNumpad('7')">7</button>
+                        <button class="numpad-btn" onclick="app.pressNumpad('8')">8</button>
+                        <button class="numpad-btn" onclick="app.pressNumpad('9')">9</button>
+                        <button class="numpad-btn numpad-del" onclick="app.pressNumpad('del')">⌫</button>
+                        <button class="numpad-btn" onclick="app.pressNumpad('0')">0</button>
+                        <button class="numpad-btn numpad-enter" onclick="app.checkArcade()">↵</button>
+                    </div>
+
                     <div id="arcade-choice-box" class="choice-grid" style="display:none;"></div>
                 </div>
 
@@ -1186,56 +1308,92 @@
             </div>
         </div>
 
-        <!-- ADMIN -->
+        <!-- ADMIN MAESTRO (MODO PAPI) -->
         <div id="screen-admin" class="screen">
-            <div class="glass-card" id="admin-login-box">
-                <h2>Control de Papi</h2>
-                <input type="password" id="admin-pass-input" class="admin-input" style="font-size:1.8rem; text-align:center; margin:1.5rem 0;" placeholder="PIN">
-                <button class="btn" style="width:100%;" onclick="app.checkAdmin()">Entrar al Panel</button>
+            <div class="glass-card" id="admin-login-box" style="max-width:420px; margin:2rem auto; text-align:center;">
+                <div style="font-size:3rem; margin-bottom:0.5rem;">👨‍🏫</div>
+                <h2>Control de Padres / Admin</h2>
+                <p style="opacity:0.7; font-size:0.85rem; margin-bottom:1.5rem;">Introduce el PIN maestro para acceder a la supervisión global.</p>
+                <input type="password" id="admin-pass-input" class="arcade-input" style="font-size:2rem; width:100%; max-width:200px; margin:0 auto 1.5rem auto;" placeholder="PIN" onkeyup="if(event.key==='Enter') app.checkAdmin()">
+                <button class="btn" style="width:100%;" onclick="app.checkAdmin()">Entrar al Panel Maestro</button>
             </div>
+
             <div id="admin-main-panel" style="display:none; flex-direction:column; gap:1.5rem;">
-                <div class="glass-card">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-                        <h3>Configuración de IA</h3>
-                        <div id="ai-status-dot" style="width:12px; height:12px; border-radius:50%; background:var(--error); box-shadow:0 0 10px var(--error);"></div>
-                    </div>
-                    <div style="margin-bottom: 1.5rem;">
-                        <label style="font-size: 0.8rem; opacity: 0.6;">Google Gemini API Key</label>
-                        <input type="password" id="admin-api-key" class="admin-input" placeholder="Introduce tu clave aquí...">
-                        <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
-                            <button class="btn" style="flex:1; font-size: 0.7rem; padding: 0.4rem;" onclick="app.saveApiKey()">Guardar</button>
-                            <button class="btn" style="flex:1; font-size: 0.7rem; padding: 0.4rem; background:var(--accent);" onclick="app.testApiKey()">Verificar Clave</button>
-                        </div>
-                        <p id="api-test-result" style="font-size:0.6rem; margin-top:0.5rem; opacity:0.8;"></p>
-                    </div>
-                    <hr style="opacity: 0.1; margin: 1.5rem 0;">
-                    <h3>Generador de Misiones</h3>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin:1rem 0;">
-                        <div><label>Asignatura</label><select id="ai-subject" class="admin-input"><option>Matemáticas</option><option>Lengua</option><option>Sociales</option><option>Inglés</option></select></div>
-                        <div><label>Curso</label><select id="ai-grade" class="admin-input"><option>1º Primaria</option><option>2º Primaria</option><option>3º Primaria</option><option>4º Primaria</option><option>5º Primaria</option><option>6º Primaria</option></select></div>
-                    </div>
-                    <input type="text" id="ai-topic" class="admin-input" placeholder="Tema (Ej: Los ecosistemas, Verbos...)">
-                    <button class="btn" style="width:100%; margin-top:1.5rem;" onclick="app.generateMission()">✨ Generar con Aprendizaje Guiado</button>
-                    
-                    <div style="margin-top:1rem; display:flex; gap:0.5rem;">
-                        <button class="btn" style="font-size:0.6rem; padding:0.4rem; background:var(--glass-strong);" onclick="app.listModels()">Listar Modelos Disponibles</button>
-                    </div>
-                    <div id="ai-debug-log" style="margin-top: 1rem; font-size: 0.7rem; font-family: monospace; color: #00ff00; background: rgba(0,0,0,0.8); padding: 0.8rem; border-radius: 12px; display:none; border: 1px solid var(--primary);"></div>
+                <!-- Subtabs Admin -->
+                <div style="display:flex; gap:0.8rem; background:rgba(0,0,0,0.3); padding:0.4rem; border-radius:18px; max-width:650px;">
+                    <div class="segment active" id="tab-admin-students" onclick="app.switchAdminTab('students')">📊 Alumnas & Progreso</div>
+                    <div class="segment" id="tab-admin-ai" onclick="app.switchAdminTab('ai')">🔑 Clave IA Personal</div>
+                    <div class="segment" id="tab-admin-missions" onclick="app.switchAdminTab('missions')">🎯 Generador de Misiones</div>
                 </div>
-                <div class="glass-card"><h3>Usuarios Activos</h3><div id="admin-users-list"></div></div>
-                <div class="glass-card">
-                    <h3>Misiones de la Plataforma</h3>
-                    <div id="admin-missions-list" style="display:flex; flex-direction:column; gap:0.5rem; margin-top:1rem;"></div>
-                    
-                    <div style="margin-top:2rem; border-top:1px solid rgba(255,255,255,0.1); padding-top:1rem;">
-                        <label style="font-size:0.7rem; opacity:0.5;">Borrado Manual (Escribe el nombre exacto):</label>
-                        <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
-                            <input type="text" id="manual-del-input" class="admin-input" style="font-size:0.7rem;" placeholder="Nombre de misión...">
-                            <button class="btn" style="background:var(--error); font-size:0.7rem; padding:0.4rem 1rem;" onclick="app.deleteMission(document.getElementById('manual-del-input').value, true)">Borrar</button>
+
+                <!-- SUB-SECCIÓN 1: SUPERVISIÓN GLOBAL DE ALUMNAS -->
+                <div id="admin-sub-students" style="display:flex; flex-direction:column; gap:1.5rem;">
+                    <div class="glass-card">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
+                            <div>
+                                <h3>Supervisión de Alumnas en la Nube</h3>
+                                <p style="opacity:0.7; font-size:0.85rem;">Selecciona a cualquiera de las alumnas registradas para ver sus detalles:</p>
+                            </div>
+                            <select id="admin-student-select" class="arcade-input" style="font-size:1rem; padding:0.6rem 1rem; width:auto; min-width:220px;" onchange="app.renderAdminStudentDetail(this.value)">
+                                <option value="">Cargando alumnas...</option>
+                            </select>
+                        </div>
+
+                        <!-- Tarjeta de detalle de la alumna -->
+                        <div id="admin-student-card" style="display:none; background:rgba(255,255,255,0.03); border:1px solid var(--glass-border); border-radius:20px; padding:1.5rem;">
+                            <!-- Inyectado dinámicamente -->
                         </div>
                     </div>
 
-                    <button class="btn" style="width:100%; margin-top:2rem; background:rgba(255,0,0,0.2); font-size:0.6rem;" onclick="app.hardReset()">⚠️ Hard Reset de Plataforma</button>
+                    <!-- Lista general de alumnas -->
+                    <div class="glass-card">
+                        <h4 style="margin-bottom:1rem;">Todas las Alumnas Registradas</h4>
+                        <div id="admin-all-students-list" style="display:flex; flex-direction:column; gap:0.6rem;"></div>
+                    </div>
+                </div>
+
+                <!-- SUB-SECCIÓN 2: CONFIGURACIÓN DE IA PERSONAL (POR CUENTA) -->
+                <div id="admin-sub-ai" style="display:none; flex-direction:column; gap:1.5rem;">
+                    <div class="glass-card">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                            <h3>Clave Personal de Google Gemini</h3>
+                            <div id="ai-status-dot" style="width:12px; height:12px; border-radius:50%; background:var(--error); box-shadow:0 0 10px var(--error);"></div>
+                        </div>
+                        <div style="background:rgba(139,92,246,0.1); border:1px solid rgba(139,92,246,0.3); padding:1rem; border-radius:14px; margin-bottom:1.5rem; font-size:0.85rem; line-height:1.5;">
+                            🛡️ <strong>Cuota 100% Protegida:</strong> Esta clave se guarda exclusivamente en este dispositivo para tu familia. Cada compañera o padre de la app usará su propia clave si lo desea, garantizando que nadie consuma tu saldo ni genere costes a tu cuenta.
+                        </div>
+                        <div style="margin-bottom: 1.5rem;">
+                            <label style="font-size: 0.8rem; opacity: 0.6;">Introduce tu Google Gemini API Key</label>
+                            <input type="password" id="admin-api-key" class="admin-input" placeholder="AIzaSy...">
+                            <div style="display:flex; gap:0.5rem; margin-top:0.8rem;">
+                                <button class="btn" style="flex:1; font-size: 0.85rem; padding: 0.6rem;" onclick="app.saveApiKey()">💾 Guardar Clave Personal</button>
+                                <button class="btn" style="flex:1; font-size: 0.85rem; padding: 0.6rem; background:var(--accent);" onclick="app.testApiKey()">🔍 Probar Conexión</button>
+                            </div>
+                            <p id="api-test-result" style="font-size:0.8rem; margin-top:0.8rem; font-weight:700;"></p>
+                        </div>
+                        <div style="font-size:0.8rem; opacity:0.6;">
+                            ¿No tienes clave aún? Se obtiene gratis en <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--accent);">Google AI Studio</a> en 1 minuto.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SUB-SECCIÓN 3: MISIONES Y GENERADOR -->
+                <div id="admin-sub-missions" style="display:none; flex-direction:column; gap:1.5rem;">
+                    <div class="glass-card">
+                        <h3>Generador de Misiones con Aprendizaje Guiado</h3>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin:1rem 0;">
+                            <div><label>Asignatura</label><select id="ai-subject" class="admin-input"><option>Matemáticas</option><option>Lengua</option><option>Sociales</option><option>Inglés</option></select></div>
+                            <div><label>Curso</label><select id="ai-grade" class="admin-input"><option>1º Primaria</option><option>2º Primaria</option><option>3º Primaria</option><option>4º Primaria</option><option>5º Primaria</option><option>6º Primaria</option></select></div>
+                        </div>
+                        <input type="text" id="ai-topic" class="admin-input" placeholder="Tema (Ej: Fracciones, Los ecosistemas, El relieve de España...)">
+                        <button class="btn" style="width:100%; margin-top:1.5rem;" onclick="app.generateMission()">✨ Generar Misión</button>
+                        <div id="ai-debug-log" style="margin-top: 1rem; font-size: 0.7rem; font-family: monospace; color: #00ff00; background: rgba(0,0,0,0.8); padding: 0.8rem; border-radius: 12px; display:none; border: 1px solid var(--primary);"></div>
+                    </div>
+
+                    <div class="glass-card">
+                        <h3>Misiones Creadas en la Plataforma</h3>
+                        <div id="admin-missions-list" style="display:flex; flex-direction:column; gap:0.5rem; margin-top:1rem;"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1766,7 +1924,7 @@
             cloudUser: JSON.parse(localStorage.getItem('lara_cloud_session') || 'null'),
             activeChallenge: null,
             socialTab: 'ranking',
-            curr: null, mode: 'time', input: 'kb', cOp: null, st: 0, streak: 0, sCorr: 0, timer: null, studyIdx: 0, currStudy: null, chart: null, dailyBonus: false,
+            curr: null, mode: 'time', input: 'pad', cOp: null, st: 0, streak: 0, sCorr: 0, timer: null, studyIdx: 0, currStudy: null, chart: null, dailyBonus: false,
             library: {
                 "young": [
                     {
@@ -1969,7 +2127,9 @@
                 window.app = this;
                 lucide.createIcons();
                 document.getElementById('arcade-input').onkeypress = (e) => { if(e.key==='Enter') this.checkArcade(); };
-                if(this.data.settings.apiKey) document.getElementById('admin-api-key').value = this.data.settings.apiKey;
+                const savedKey = this.getApiKey();
+                const keyInput = document.getElementById('admin-api-key');
+                if(savedKey && keyInput) keyInput.value = savedKey;
 
                 if (this.cloudUser && this.cloudUser.id) {
                     await this.syncAndLoadCloudUser(this.cloudUser.id);
@@ -1981,20 +2141,29 @@
                 console.log("Lara Engine Initialized with Supabase & Duolingo features");
             },
 
+            // --- CLAVE IA PERSONAL (POR FAMILIA/CUENTA) ---
+            getApiKey() {
+                const userKey = this.cloudUser ? localStorage.getItem('lara_ai_key_' + this.cloudUser.username) : null;
+                return userKey || this.data.settings.apiKey || '';
+            },
+
             saveApiKey() {
                 const key = document.getElementById('admin-api-key').value.trim();
+                if(this.cloudUser) {
+                    localStorage.setItem('lara_ai_key_' + this.cloudUser.username, key);
+                }
                 this.data.settings.apiKey = key;
                 this.save();
-                this.notify("🔑 Clave Guardada", "Ahora verifícala para estar seguros.");
+                this.notify("🔑 Clave Personal Guardada", "Esta clave solo se usará en este dispositivo para tu familia.");
                 this.updateAiStatus(false);
             },
 
             async testApiKey() {
-                const key = this.data.settings.apiKey;
+                const key = this.getApiKey();
                 const resText = document.getElementById('api-test-result');
                 if(!key) { resText.textContent = "❌ No hay clave guardada."; return; }
                 
-                resText.textContent = "⏳ Verificando...";
+                resText.textContent = "⏳ Verificando conexión con Gemini...";
                 const models = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-3.1-flash-lite", "gemini-pro-latest"];
                 let lastError = "";
                 let success = false;
@@ -2008,7 +2177,7 @@
                         });
                         const d = await res.json();
                         if(d.candidates) {
-                            resText.textContent = `✅ ¡Clave válida! (Modelo: ${model})`;
+                            resText.textContent = `✅ ¡Clave válida y conectada! (Modelo: ${model})`;
                             this.updateAiStatus(true);
                             success = true;
                             break;
@@ -2016,7 +2185,7 @@
                             lastError = `${d.error.message} (Código: ${d.error.status})`;
                         }
                     } catch(e) {
-                        lastError = "Error de conexión/CORS. Intenta con Chrome o revisa tu red.";
+                        lastError = "Error de conexión o red.";
                     }
                 }
                 
@@ -2027,9 +2196,9 @@
             },
 
             async listModels() {
-                const key = this.data.settings.apiKey;
+                const key = this.getApiKey();
                 const log = document.getElementById('ai-debug-log');
-                if(!key) { this.notify("🔑 Sin Clave", "Primero guarda tu clave."); return; }
+                if(!key) { this.notify("🔑 Sin Clave", "Primero introduce tu clave personal de Gemini."); return; }
                 log.style.display = 'block'; log.textContent = "> Consultando modelos disponibles...";
                 try {
                     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
@@ -2040,6 +2209,232 @@
                         log.textContent = "> Error al listar: " + JSON.stringify(d);
                     }
                 } catch(e) { log.textContent = "> Error de conexión: " + e.message; }
+            },
+
+            // --- ENTRADA TÁCTIL (NUMPAD) Y TECLADO ---
+            setInput(type) {
+                this.input = type;
+                document.querySelectorAll('#arcade-input-selector .segment').forEach(s => {
+                    s.classList.toggle('active', s.dataset.i === type);
+                });
+                const numpadEl = document.getElementById('arcade-numpad');
+                const inputBox = document.getElementById('arcade-input-box');
+                const choiceBox = document.getElementById('arcade-choice-box');
+                const inp = document.getElementById('arcade-input');
+
+                if(type === 'pad') {
+                    if(inputBox) inputBox.style.display = 'flex';
+                    if(numpadEl) numpadEl.style.display = 'grid';
+                    if(choiceBox) choiceBox.style.display = 'none';
+                    if(inp) { inp.readOnly = true; inp.inputMode = 'none'; inp.blur(); }
+                } else if(type === 'kb') {
+                    if(inputBox) inputBox.style.display = 'flex';
+                    if(numpadEl) numpadEl.style.display = 'none';
+                    if(choiceBox) choiceBox.style.display = 'none';
+                    if(inp) { inp.readOnly = false; inp.inputMode = 'numeric'; inp.focus(); }
+                } else if(type === 'ms') {
+                    if(inputBox) inputBox.style.display = 'none';
+                    if(numpadEl) numpadEl.style.display = 'none';
+                    if(choiceBox) choiceBox.style.display = 'grid';
+                    this.genChoices();
+                }
+            },
+
+            pressNumpad(val) {
+                const inp = document.getElementById('arcade-input');
+                if(!inp) return;
+                beep(520, 0.04);
+                if(val === 'del') {
+                    inp.value = inp.value.slice(0, -1);
+                } else {
+                    if(inp.value.length < 5) {
+                        inp.value += val;
+                    }
+                }
+                if(this.cOp && this.cOp.ans !== undefined) {
+                    const ansStr = String(this.cOp.ans);
+                    if(inp.value.length === ansStr.length) {
+                        this.checkArcade();
+                    }
+                }
+            },
+
+            // --- PANEL DE CONTROL MAESTRO (SUPERVISIÓN GLOBAL) ---
+            switchAdminTab(tab) {
+                const ts = document.getElementById('tab-admin-students');
+                const ta = document.getElementById('tab-admin-ai');
+                const tm = document.getElementById('tab-admin-missions');
+                if(ts) ts.classList.toggle('active', tab === 'students');
+                if(ta) ta.classList.toggle('active', tab === 'ai');
+                if(tm) tm.classList.toggle('active', tab === 'missions');
+
+                const as = document.getElementById('admin-sub-students');
+                const aa = document.getElementById('admin-sub-ai');
+                const am = document.getElementById('admin-sub-missions');
+                if(as) as.style.display = tab === 'students' ? 'flex' : 'none';
+                if(aa) aa.style.display = tab === 'ai' ? 'flex' : 'none';
+                if(am) am.style.display = tab === 'missions' ? 'flex' : 'none';
+
+                if(tab === 'students') this.loadAdminStudents();
+                if(tab === 'ai') {
+                    const keyInput = document.getElementById('admin-api-key');
+                    if(keyInput) keyInput.value = this.getApiKey();
+                }
+                if(tab === 'missions') this.renderAdminMissions();
+            },
+
+            async loadAdminStudents() {
+                const select = document.getElementById('admin-student-select');
+                const listEl = document.getElementById('admin-all-students-list');
+                if(!select || !listEl) return;
+
+                select.innerHTML = '<option value="">Cargando alumnas...</option>';
+                listEl.innerHTML = '<div class="loader"></div>';
+
+                try {
+                    const { data: students, error } = await sb
+                        .from('profiles')
+                        .select('*')
+                        .order('xp', { ascending: false });
+
+                    if(error || !students || students.length === 0) {
+                        select.innerHTML = '<option value="">No hay alumnas registradas</option>';
+                        listEl.innerHTML = '<p style="opacity:0.6; padding:1rem;">Aún no se ha registrado ninguna alumna.</p>';
+                        return;
+                    }
+
+                    this.adminStudentsList = students;
+
+                    select.innerHTML = '<option value="">-- Elige una alumna para supervisar --</option>' +
+                        students.map(s => `<option value="${s.id}">${s.avatar || '👧'} ${s.username} (${s.grade}) - ${s.xp} XP</option>`).join('');
+
+                    let html = '';
+                    students.forEach(s => {
+                        html += `
+                            <div class="social-user-row" style="cursor:pointer;" onclick="document.getElementById('admin-student-select').value='${s.id}'; app.renderAdminStudentDetail('${s.id}')">
+                                <div style="display:flex; align-items:center; gap:1rem;">
+                                    <span style="font-size:2rem;">${s.avatar || '👧'}</span>
+                                    <div>
+                                        <div style="font-weight:700; font-size:1.05rem;">${s.username}</div>
+                                        <div style="font-size:0.8rem; opacity:0.6;">${s.grade} · Nivel ${s.level} · Última conexión: ${s.last_active_date || 'Hoy'}</div>
+                                    </div>
+                                </div>
+                                <div style="display:flex; align-items:center; gap:1.5rem;">
+                                    <span style="color:#fbbf24; font-weight:800;">🔥 ${s.streak_count}d</span>
+                                    <span style="color:#38bdf8; font-weight:800;">🧊 ${s.streak_shields} escudos</span>
+                                    <span style="font-weight:800; font-size:1.1rem; color:white;">${s.xp} XP</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    listEl.innerHTML = html;
+
+                    const defaultStudent = students.find(s => this.cloudUser && s.id === this.cloudUser.id) || students[0];
+                    if(defaultStudent) {
+                        select.value = defaultStudent.id;
+                        this.renderAdminStudentDetail(defaultStudent.id);
+                    }
+                } catch(e) {
+                    listEl.innerHTML = `<p style="color:var(--error);">Error al cargar alumnas: ${e.message}</p>`;
+                }
+            },
+
+            renderAdminStudentDetail(studentId) {
+                const card = document.getElementById('admin-student-card');
+                if(!card) return;
+                if(!studentId || !this.adminStudentsList) {
+                    card.style.display = 'none';
+                    return;
+                }
+
+                const s = this.adminStudentsList.find(st => st.id === studentId);
+                if(!s) return;
+
+                card.style.display = 'block';
+
+                let failsList = [];
+                if(this.data.users[s.username]) {
+                    failsList = this.data.users[s.username].fails || [];
+                }
+
+                let failsHtml = '';
+                if(failsList.length > 0) {
+                    failsHtml = failsList.slice(-6).map(f => `
+                        <div style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); border-radius:12px; padding:0.6rem 1rem; display:flex; justify-content:space-between; align-items:center;">
+                            <span>⚠️ <strong>${f.q || f.op || 'Operación'}</strong></span>
+                            <span style="color:#fca5a5; font-size:0.85rem;">Respondió: ${f.ans || '?'} (Correcto: ${f.expected || '?'})</span>
+                        </div>
+                    `).join('');
+                } else {
+                    failsHtml = '<p style="opacity:0.6; font-size:0.85rem;">¡No hay fallos recientes registrados! Su rendimiento es excelente.</p>';
+                }
+
+                card.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:1.5rem;">
+                        <div style="display:flex; align-items:center; gap:1.2rem;">
+                            <span style="font-size:3.5rem;">${s.avatar || '👧'}</span>
+                            <div>
+                                <h2 style="font-size:1.8rem; font-weight:800; color:white;">${s.username}</h2>
+                                <p style="opacity:0.7; font-size:0.9rem;">${s.grade} · Nivel ${s.level} · Registrada: ${new Date(s.created_at).toLocaleDateString()}</p>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:0.8rem;">
+                            <button class="btn" style="padding:0.5rem 1rem; font-size:0.8rem; background:linear-gradient(135deg, #0284c7, #06b6d4);" onclick="app.adminGiftShield('${s.id}')">🎁 Regalar +1 🧊 Protector</button>
+                        </div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:1rem; margin-bottom:1.5rem;">
+                        <div style="background:rgba(255,255,255,0.04); border-radius:16px; padding:1rem; text-align:center;">
+                            <div style="font-size:0.8rem; opacity:0.6;">XP Acumulado</div>
+                            <div style="font-size:1.8rem; font-weight:800; color:#fbbf24;">${s.xp}</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.04); border-radius:16px; padding:1rem; text-align:center;">
+                            <div style="font-size:0.8rem; opacity:0.6;">Racha Actual</div>
+                            <div style="font-size:1.8rem; font-weight:800; color:#fbbf24;">🔥 ${s.streak_count} días</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.04); border-radius:16px; padding:1rem; text-align:center;">
+                            <div style="font-size:0.8rem; opacity:0.6;">Protectores 🧊</div>
+                            <div style="font-size:1.8rem; font-weight:800; color:#38bdf8;">${s.streak_shields}</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.04); border-radius:16px; padding:1rem; text-align:center;">
+                            <div style="font-size:0.8rem; opacity:0.6;">Última Actividad</div>
+                            <div style="font-size:1.1rem; font-weight:700; color:white; margin-top:0.4rem;">${s.last_active_date || 'Hoy'}</div>
+                        </div>
+                    </div>
+
+                    <h4 style="margin-bottom:0.8rem; color:#fca5a5;">🎯 Conceptos o Fallos para Reforzar Juntos:</h4>
+                    <div style="display:flex; flex-direction:column; gap:0.5rem;">
+                        ${failsHtml}
+                    </div>
+                `;
+            },
+
+            async adminGiftShield(studentId) {
+                const s = (this.adminStudentsList || []).find(st => st.id === studentId);
+                if(!s) return;
+                const newShields = (s.streak_shields || 0) + 1;
+                s.streak_shields = newShields;
+                await sb.from('profiles').update({ streak_shields: newShields }).eq('id', studentId);
+                this.renderAdminStudentDetail(studentId);
+                this.notify("🎁 Regalo Enviado", `¡Has regalado un protector de racha 🧊 a ${s.username}!`);
+            },
+
+            renderAdminMissions() {
+                const ml = document.getElementById('admin-missions-list');
+                if(!ml) return;
+                ml.innerHTML = '';
+                const missions = Object.keys(this.data.missions);
+                if(missions.length === 0) {
+                    ml.innerHTML = '<p style="opacity:0.4; font-size:0.8rem; text-align:center;">No hay misiones creadas.</p>';
+                    return;
+                }
+                missions.forEach(n => {
+                    const d = document.createElement('div');
+                    d.style = 'display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.05); padding:1rem; border-radius:16px; border:1px solid rgba(255,255,255,0.05);';
+                    d.innerHTML = `<div><strong style="display:block;">${n}</strong><small style="opacity:0.5;">${this.data.missions[n].subject || 'General'}</small></div>
+                    <button class="btn" style="background:var(--error); font-size:0.7rem; padding:0.4rem 0.8rem;" onclick="app.deleteMission('${n}')">Borrar</button>`;
+                    ml.appendChild(d);
+                });
             },
 
             updateAiStatus(ok) {
@@ -2889,8 +3284,7 @@
                     // Modo Calcula (Matemáticas)
                     document.getElementById('arcade-math-zone').style.display = 'block';
                     document.getElementById('op-text').style.display = 'block';
-                    document.getElementById('arcade-input-box').style.display = this.input==='kb' ? 'flex' : 'none';
-                    document.getElementById('arcade-choice-box').style.display = this.input==='ms' ? 'grid' : 'none';
+                    this.setInput(this.input || 'pad');
                     
                     if(this.mode==='time') { 
                         let t=60; document.getElementById('arcade-timer').textContent="60.00";
@@ -3406,7 +3800,10 @@
                 const displaySymbol = type === '*' ? '×' : type === '/' ? '÷' : type;
                 document.getElementById('op-text').textContent = `${this.cOp.a} ${displaySymbol} ${this.cOp.b}`;
                 
-                const input = document.getElementById('arcade-input'); input.value=''; input.focus();
+                const input = document.getElementById('arcade-input'); 
+                input.value=''; 
+                if(this.input==='kb') input.focus();
+                else input.blur();
                 if(this.input==='ms') this.genChoices();
                 this.st = performance.now();
             },
@@ -3415,6 +3812,7 @@
                 if(this.timer) clearInterval(this.timer); this.timer = null;
                 document.getElementById('op-text').style.display = 'none';
                 document.getElementById('arcade-input-box').style.display = 'none';
+                const np = document.getElementById('arcade-numpad'); if(np) np.style.display = 'none';
                 document.getElementById('arcade-choice-box').style.display = 'none';
                 document.getElementById('arcade-ortografia-zone').style.display = 'none';
                 document.getElementById('arcade-vocabulario-zone').style.display = 'none';
@@ -4111,9 +4509,9 @@
                 const sub=document.getElementById('ai-subject').value, gr=document.getElementById('ai-grade').value, t=document.getElementById('ai-topic').value;
                 if(!t) return; 
                 
-                const key = this.data.settings.apiKey;
+                const key = this.getApiKey();
                 if(!key) {
-                    this.notify("🛑 Clave Requerida", "Por favor configura tu clave API de Gemini en los ajustes de administración para poder crear nuevas misiones.");
+                    this.notify("🛑 Clave Requerida", "Cada familia debe introducir su clave gratuita de Google Gemini en el panel de Padres para generar misiones personalizadas con IA.");
                     return;
                 }
                 
@@ -4602,7 +5000,16 @@
                 });
             },
             modal(id,show=true) { document.getElementById(`modal-${id}`).classList.toggle('active',show); },
-            checkAdmin() { if(document.getElementById('admin-pass-input').value==='1234') { document.getElementById('admin-login-box').style.display='none'; document.getElementById('admin-main-panel').style.display='flex'; this.renderAdmin(); } },
+            checkAdmin() { 
+                const pin = document.getElementById('admin-pass-input').value.trim();
+                if(pin === '1234' || pin === '7410') { 
+                    document.getElementById('admin-login-box').style.display='none'; 
+                    document.getElementById('admin-main-panel').style.display='flex'; 
+                    this.switchAdminTab('students'); 
+                } else {
+                    this.notify("❌ PIN Incorrecto", "Introduce el PIN de padres (1234 o 7410).");
+                }
+            },
             startDailyChallenge() { this.dailyBonus = true; this.notify("🌟 Bonus Activado", "¡Ganas 2x XP en todo lo que hagas ahora!"); this.switchScreen('arcade', document.querySelector('[data-lucide="zap"]').parentElement); }
         };
 
