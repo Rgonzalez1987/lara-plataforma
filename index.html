@@ -284,9 +284,11 @@
                 width: 100% !important;
                 height: auto !important;
                 flex-direction: row !important;
+                flex-wrap: wrap !important;
                 align-items: center !important;
                 justify-content: space-between !important;
-                padding: 0.8rem 1rem !important;
+                gap: 0.5rem !important;
+                padding: 0.6rem 0.9rem !important;
                 border-right: none !important;
                 border-bottom: 1px solid var(--glass-border) !important;
                 position: sticky !important;
@@ -295,19 +297,48 @@
             }
             aside .logo {
                 margin-bottom: 0 !important;
-                font-size: 1.1rem !important;
+                font-size: 1.05rem !important;
+            }
+            aside > div:last-child {
+                margin-top: 0 !important;
+                padding: 0.35rem 0.65rem !important;
+                border-radius: 12px !important;
+                display: flex !important;
+                align-items: center !important;
+                gap: 0.5rem !important;
+            }
+            aside > div:last-child > p {
+                display: none !important;
+            }
+            aside > div:last-child > button {
+                margin-top: 0 !important;
+                width: auto !important;
+                padding: 0.25rem 0.5rem !important;
             }
             aside nav {
                 display: flex !important;
+                width: 100% !important;
+                order: 3 !important;
                 gap: 0.3rem !important;
                 overflow-x: auto !important;
                 -webkit-overflow-scrolling: touch !important;
+                padding-bottom: 0.2rem !important;
             }
             aside .nav-item {
-                padding: 0.5rem 0.8rem !important;
-                font-size: 0.8rem !important;
+                padding: 0.45rem 0.7rem !important;
+                font-size: 0.78rem !important;
                 margin-bottom: 0 !important;
                 white-space: nowrap !important;
+                flex-shrink: 0 !important;
+            }
+            header#main-header {
+                flex-wrap: wrap !important;
+                gap: 0.5rem !important;
+                padding: 0.6rem 0.9rem !important;
+            }
+            header#main-header .xp-container {
+                margin: 0 0.6rem !important;
+                min-width: 140px !important;
             }
             main {
                 padding: 1.2rem !important;
@@ -709,8 +740,9 @@
         </div>
         <nav id="sidebar-nav">
             <div class="nav-item active" data-nav="home" onclick="app.switchScreen('home', this)"><i data-lucide="home"></i> Inicio</div>
+            <div class="nav-item" data-nav="aventura" onclick="app.switchScreen('aventura', this)"><i data-lucide="map"></i> Aventura</div>
             <div class="nav-item" data-nav="arcade" onclick="app.switchScreen('arcade', this)"><i data-lucide="zap"></i> Aprendo Jugando</div>
-            <div class="nav-item" data-nav="study" onclick="app.switchScreen('study', this)"><i data-lucide="book-open"></i> Estudio</div>
+            <div class="nav-item" data-nav="study" onclick="app.switchScreen('study', this)"><i data-lucide="library"></i> Biblioteca</div>
             <div class="nav-item" data-nav="social" onclick="app.switchScreen('social', this)"><i data-lucide="users"></i> Amigas 🔥</div>
             <div class="nav-item" data-nav="stats" onclick="app.switchScreen('stats', this)"><i data-lucide="bar-chart-3"></i> Progreso</div>
             <div class="nav-item" data-nav="papi" onclick="app.switchScreen('papi', this)"><i data-lucide="shield-check"></i> Modo Papi</div>
@@ -1175,11 +1207,15 @@
         </div>
 
             <!-- ESTUDIO -->
+            <div id="screen-aventura" class="screen"></div>
+
             <div id="screen-study" class="screen">
                 <div id="study-library">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-                        <h1>📚 Mi Biblioteca</h1>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.5rem;">
+                        <div><h1>📚 Biblioteca</h1><p style="opacity:.65;font-size:.9rem">Todo el temario de 6.º, sin candados: estudia lo que quieras, en el orden que quieras.</p></div>
                     </div>
+                    <div id="adv-library" style="margin-bottom:2rem;"></div>
+                    <h3 id="extra-missions-title" style="margin:1rem 0 .8rem;">✨ Misiones extra (creadas con IA por la familia)</h3>
                     <div id="mission-grid" class="mission-grid"></div>
                 </div>
                 <div id="study-player" style="display:none;">
@@ -1557,6 +1593,9 @@
     </div>
 
     <script src="js/problemas_db.js"></script>
+    <script src="js/aventura/meta.js"></script>
+    <script src="js/aventura/engine.js"></script>
+    <script src="js/aventura/content.js"></script>
     <script>
         // --- SONIDOS ---
         const audio = new (window.AudioContext || window.webkitAudioContext)();
@@ -3066,6 +3105,7 @@
                     document.getElementById('arcade-play-zone').style.display = 'none';
                     document.getElementById('arcade-results').style.display = 'none';
                 }
+                if(id==='aventura') Adv.renderScreen();
                 if(id==='study') this.renderLibrary();
                 if(id==='social') this.renderSocial();
                 if(id==='stats') this.renderStats();
@@ -3303,6 +3343,7 @@
                         if(!this.curr.achievements) this.curr.achievements = [];
                         if(!this.curr.fails) this.curr.fails = [];
                         if(!this.curr.mastery) this.curr.mastery = { calcula: { '+': 1, '-': 1, '*': 1, '/': 1 } };
+                        if(window.Adv && profile.progress && typeof profile.progress === 'object') this.curr.adv = Adv.mergeProgress(this.curr.adv, profile.progress);
                         this.save();
 
                         document.getElementById('sidebar-user-name').textContent = n;
@@ -4892,6 +4933,8 @@
             renderLibrary() {
                 document.getElementById('study-library').style.display='block'; document.getElementById('study-player').style.display='none';
                 const grid=document.getElementById('mission-grid'); grid.innerHTML='';
+                if(window.Adv) { const lb=document.getElementById('adv-library'); if(lb) Adv.renderLibrary(lb); }
+                const xt=document.getElementById('extra-missions-title'); if(xt) xt.style.display = (Object.keys(this.data.missions).length || this.curr.fails.length) ? 'block' : 'none';
                 if(this.curr.fails.length > 0) { 
                     const c=document.createElement('div'); c.className='mission-card'; c.style.borderColor='var(--error)'; 
                     c.innerHTML=`<h3>Repasar Errores</h3><p style="font-size:0.7rem;opacity:0.6;">${this.curr.fails.length} retos</p>`; 
