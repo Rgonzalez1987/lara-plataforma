@@ -793,6 +793,7 @@
                     <p id="dash-phrase" style="margin-top:1rem; font-style:italic; opacity:0.7;"></p>
                 </div>
             </div>
+            <div id="home-adv-hub"></div>
             <div class="daily-challenge" id="daily-challenge-card" onclick="app.startDailyChallenge()">
                 <div style="display:flex; align-items:center; gap:1.5rem;">
                     <div style="font-size:3rem;">🌟</div>
@@ -1347,6 +1348,8 @@
             </div>
 
             <!-- Recent Activity Timeline Feed -->
+            <div class="glass-card" id="stats-trophy-album"></div>
+
             <div class="glass-card">
                 <h2>Historial de Actividad Reciente</h2>
                 <div class="timeline-list" id="timeline-list">
@@ -1558,11 +1561,21 @@
         </div>
 
         <div id="modal-challenge" class="modal">
-            <div class="glass-card" style="width:100%; max-width:420px; text-align:center;">
-                <div style="font-size:3rem; margin-bottom:0.5rem;">⚔️</div>
-                <h2 style="margin-bottom:0.8rem;">Nuevo Reto</h2>
-                <p style="opacity:0.8; font-size:0.9rem; margin-bottom:1.5rem;">Elige a cuál de tus amigas quieres retar a una batalla de cálculo rápido (60s):</p>
-                <select id="challenge-target-friend" class="arcade-input" style="font-size:1.1rem; padding:0.8rem; width:100%; max-width:100%; margin-bottom:1.5rem;"></select>
+            <div class="glass-card" style="width:100%; max-width:440px; text-align:center;">
+                <div style="font-size:3rem; margin-bottom:0.4rem;">⚔️</div>
+                <h2 style="margin-bottom:0.5rem;">Nuevo Reto entre Amigas</h2>
+                <p style="opacity:0.8; font-size:0.88rem; margin-bottom:1rem;">Elige a tu compañera y la asignatura del duelo:</p>
+                <label style="display:block;text-align:left;font-size:0.78rem;opacity:0.7;margin-bottom:0.3rem;">1. ¿A quién retas?</label>
+                <select id="challenge-target-friend" class="arcade-input" style="font-size:1.05rem; padding:0.75rem; width:100%; max-width:100%; margin-bottom:1rem;"></select>
+                <label style="display:block;text-align:left;font-size:0.78rem;opacity:0.7;margin-bottom:0.3rem;">2. Tipo de Batalla:</label>
+                <select id="challenge-game-type" class="arcade-input" style="font-size:1.05rem; padding:0.75rem; width:100%; max-width:100%; margin-bottom:1.4rem;">
+                    <option value="math">🧮 Cálculo Mental Rápido (60s)</option>
+                    <option value="lengua">📖 Duelo de Lengua (8 preguntas)</option>
+                    <option value="mates_adv">📐 Duelo de Matemáticas 6.º (8 preguntas)</option>
+                    <option value="naturales">🌿 Duelo de Ciencias Naturales (8 preguntas)</option>
+                    <option value="sociales">🌍 Duelo de Ciencias Sociales (8 preguntas)</option>
+                    <option value="trivial">🎲 Trivial Mixto de 6.º (Todas las áreas)</option>
+                </select>
                 <div style="display:flex; gap:1rem;">
                     <button class="btn" style="flex:1;" onclick="app.startChallengeBattle()">🚀 ¡Jugar y Enviar!</button>
                     <button class="btn" style="flex:1; background:var(--error);" onclick="app.modal('challenge', false)">Cancelar</button>
@@ -3709,12 +3722,29 @@
                 this.modal('challenge', true);
             },
 
-            launchDirectChallenge(friendId, friendName) {
+            gameTypeLabel(gt) {
+                const map = { math: '🧮 Cálculo 60s', lengua: '📖 Lengua', mates_adv: '📐 Mates 6.º', naturales: '🌿 Naturales', sociales: '🌍 Sociales', trivial: '🎲 Trivial 6.º' };
+                return map[gt] || '🧮 Cálculo 60s';
+            },
+
+            async launchDirectChallenge(friendId, friendName, gameType) {
+                if (!gameType) {
+                    await this.openNewChallengeModal();
+                    const sel = document.getElementById('challenge-target-friend');
+                    if (sel && friendId) sel.value = friendId;
+                    return;
+                }
                 this.activeChallenge = {
                     isNew: true,
                     opponentId: friendId,
-                    opponentName: friendName
+                    opponentName: friendName,
+                    gameType: gameType
                 };
+                if (gameType !== 'math' && window.Adv) {
+                    this.notify("⚔️ ¡Duelo Temático!", `Demuestra cuánto sabes de ${this.gameTypeLabel(gameType)} para retar a ${friendName}.`);
+                    Adv.startSubjectBattle(gameType, (score) => this.completeChallengeBattle(score));
+                    return;
+                }
                 this.notify("⚔️ ¡A por el Reto!", `Juega tu mejor partida de cálculo (60s) para retar a ${friendName}.`);
                 this.switchScreen('arcade', document.querySelector('[data-lucide="zap"]').parentElement);
                 this.showArcadeConfig('math');
@@ -3723,10 +3753,12 @@
 
             startChallengeBattle() {
                 const select = document.getElementById('challenge-target-friend');
+                const gtSel = document.getElementById('challenge-game-type');
                 const targetId = select.value;
+                const gameType = gtSel ? gtSel.value : 'math';
                 const friend = this.friendsList.find(f => f.id === targetId);
                 this.modal('challenge', false);
-                this.launchDirectChallenge(targetId, friend ? friend.username : "tu amiga");
+                this.launchDirectChallenge(targetId, friend ? friend.username : "tu amiga", gameType);
             },
 
             async completeChallengeBattle(score) {
@@ -3740,23 +3772,23 @@
                             challenger_id: this.cloudUser.id,
                             opponent_id: ac.opponentId,
                             challenger_score: score,
-                            game_type: 'math',
+                            game_type: ac.gameType || 'math',
                             status: 'pending'
                         }]);
-                        this.notify("⚔️ ¡Reto Enviado!", `Hiciste ${score} aciertos. ¡Le llegará la invitación a ${ac.opponentName}!`);
+                        this.notify("⚔️ ¡Reto Enviado!", `Conseguiste ${score} puntos en ${this.gameTypeLabel(ac.gameType)}. ¡Reto enviado a ${ac.opponentName}!`);
                     } else if(ac.challengeId) {
                         let winnerId = null;
                         let outcomeMsg = "";
                         if(score > ac.challengerScore) {
                             winnerId = this.cloudUser.id;
-                            outcomeMsg = `🎉 ¡VICTORIA! Superaste los ${ac.challengerScore} aciertos de ${ac.challengerName}. (+150 XP bonus)`;
+                            outcomeMsg = `🎉 ¡VICTORIA! Superaste los ${ac.challengerScore} pts de ${ac.challengerName} con ${score} pts. (+150 XP bonus)`;
                             this.addXP(150);
                         } else if(score < ac.challengerScore) {
                             winnerId = ac.challengerId;
-                            outcomeMsg = `🥈 Buen intento (${score} aciertos). Ganó ${ac.challengerName} con ${ac.challengerScore}. (+30 XP)`;
+                            outcomeMsg = `🥈 Buen intento (${score} pts). Ganó ${ac.challengerName} con ${ac.challengerScore} pts. (+30 XP)`;
                             this.addXP(30);
                         } else {
-                            outcomeMsg = `🤝 ¡EMPATE perfecto! Ambas consiguieron ${score} aciertos. (+75 XP)`;
+                            outcomeMsg = `🤝 ¡EMPATE perfecto! Ambas consiguieron ${score} pts. (+75 XP)`;
                             this.addXP(75);
                         }
 
@@ -3768,6 +3800,7 @@
 
                         sfx.lvl();
                         this.notify("⚔️ Fin de la Batalla", outcomeMsg);
+                        this.loadChallenges();
                     }
                 } catch(e) {
                     console.error("Error challenge finish:", e);
@@ -3805,17 +3838,18 @@
                         let html = '';
                         pending.forEach(c => {
                             const isIncoming = c.opponent_id === this.cloudUser.id;
+                            const gtLabel = this.gameTypeLabel(c.game_type);
                             if(isIncoming) {
                                 html += `
                                     <div class="challenge-card">
                                         <div style="display:flex; align-items:center; gap:0.8rem;">
                                             <span style="font-size:2rem;">${c.challenger?.avatar || '⚡'}</span>
                                             <div>
-                                                <strong>¡${c.challenger?.username} te ha retado!</strong>
-                                                <div style="font-size:0.8rem; opacity:0.7;">Consiguió ${c.challenger_score} aciertos en 60s. ¿Puedes superarla?</div>
+                                                <strong>¡${c.challenger?.username} te ha retado! <span style="font-size:0.75rem;background:rgba(139,92,246,0.25);padding:0.15rem 0.5rem;border-radius:8px;margin-left:0.3rem;">${gtLabel}</span></strong>
+                                                <div style="font-size:0.8rem; opacity:0.7;">Consiguió ${c.challenger_score} pts. ¿Puedes superarla?</div>
                                             </div>
                                         </div>
-                                        <button class="btn" style="padding:0.5rem 1rem; font-size:0.85rem;" onclick="app.acceptChallengeBattle('${c.id}', '${c.challenger?.username}', ${c.challenger_score}, '${c.challenger_id}')">⚔️ ¡Aceptar Batalla!</button>
+                                        <button class="btn" style="padding:0.5rem 1rem; font-size:0.85rem;" onclick="app.acceptChallengeBattle('${c.id}', '${c.challenger?.username}', ${c.challenger_score}, '${c.challenger_id}', '${c.game_type || 'math'}')">⚔️ ¡Aceptar Batalla!</button>
                                     </div>
                                 `;
                             } else {
@@ -3824,8 +3858,8 @@
                                         <div style="display:flex; align-items:center; gap:0.8rem;">
                                             <span style="font-size:2rem;">⏳</span>
                                             <div>
-                                                <strong>Retaste a ${c.opponent?.username}</strong>
-                                                <div style="font-size:0.8rem; opacity:0.7;">Puntuación enviada: ${c.challenger_score}. Esperando a que juegue.</div>
+                                                <strong>Retaste a ${c.opponent?.username} <span style="font-size:0.75rem;background:rgba(255,255,255,0.1);padding:0.15rem 0.5rem;border-radius:8px;margin-left:0.3rem;">${gtLabel}</span></strong>
+                                                <div style="font-size:0.8rem; opacity:0.7;">Puntuación enviada: ${c.challenger_score} pts. Esperando a que juegue.</div>
                                             </div>
                                         </div>
                                         <span style="font-size:0.8rem; opacity:0.5;">En espera</span>
@@ -3846,6 +3880,7 @@
                             const otherScore = iAmChallenger ? c.opponent_score : c.challenger_score;
                             const otherName = iAmChallenger ? c.opponent?.username : c.challenger?.username;
                             const otherAvatar = iAmChallenger ? c.opponent?.avatar : c.challenger?.avatar;
+                            const gtLabel = this.gameTypeLabel(c.game_type);
 
                             const iWon = c.winner_id === this.cloudUser.id;
                             const tie = myScore === otherScore;
@@ -3855,8 +3890,8 @@
                                     <div style="display:flex; align-items:center; gap:0.8rem;">
                                         <span style="font-size:1.8rem;">${otherAvatar || '👧'}</span>
                                         <div>
-                                            <strong>${iWon ? '🏆 Victoria' : tie ? '🤝 Empate' : '🥈 2º puesto'} contra ${otherName}</strong>
-                                            <div style="font-size:0.8rem; opacity:0.7;">Tú: ${myScore} aciertos vs ${otherName}: ${otherScore} aciertos</div>
+                                            <strong>${iWon ? '🏆 Victoria' : tie ? '🤝 Empate' : '🥈 2º puesto'} contra ${otherName} <span style="font-size:0.72rem;opacity:0.75;">(${gtLabel})</span></strong>
+                                            <div style="font-size:0.8rem; opacity:0.7;">Tú: ${myScore} pts vs ${otherName}: ${otherScore} pts</div>
                                         </div>
                                     </div>
                                     <span style="font-weight:800; font-size:1.1rem; color:${iWon ? 'var(--success)' : tie ? '#fbbf24' : 'rgba(255,255,255,0.4)'};">${iWon ? '+150 XP' : tie ? '+75 XP' : '+30 XP'}</span>
@@ -3870,13 +3905,20 @@
                 }
             },
 
-            acceptChallengeBattle(challengeId, challengerName, challengerScore, challengerId) {
+            acceptChallengeBattle(challengeId, challengerName, challengerScore, challengerId, gameType) {
+                const gt = gameType || 'math';
                 this.activeChallenge = {
                     challengeId: challengeId,
                     challengerId: challengerId,
                     challengerName: challengerName,
-                    challengerScore: challengerScore
+                    challengerScore: challengerScore,
+                    gameType: gt
                 };
+                if (gt !== 'math' && window.Adv) {
+                    this.notify("⚔️ ¡Duelo Iniciada!", `Supera los ${challengerScore} pts de ${challengerName} en ${this.gameTypeLabel(gt)}.`);
+                    Adv.startSubjectBattle(gt, (score) => this.completeChallengeBattle(score));
+                    return;
+                }
                 this.notify("⚔️ ¡Batalla Iniciada!", `Supera los ${challengerScore} aciertos de ${challengerName}. ¡A por todas!`);
                 this.switchScreen('arcade', document.querySelector('[data-lucide="zap"]').parentElement);
                 this.showArcadeConfig('math');
@@ -3908,6 +3950,7 @@
 
                 const bGrid = document.getElementById('dash-badges'); bGrid.innerHTML = '';
                 badges.forEach(b => { const active = this.curr.achievements.includes(b.id); const div = document.createElement('div'); div.className = `badge-icon ${active?'active':''}`; div.innerHTML = `<i data-lucide="${b.icon}"></i>`; bGrid.appendChild(div); });
+                if(window.Adv) Adv.renderHomeWidget();
                 lucide.createIcons();
             },
 
@@ -5382,6 +5425,7 @@
                 return [];
             },
             renderStats() {
+                if(window.Adv) Adv.renderTrophyAlbum();
                 const hist = this.curr.history || [];
                 
                 // --- 1. KPI CARDS CALCULATIONS ---

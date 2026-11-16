@@ -1,8 +1,14 @@
 /* =========================================================
-   LARA · MOTOR DE AVENTURA Y BIBLIOTECA (EDICIÓN VIVA)
+   LARA · MOTOR DE AVENTURA Y BIBLIOTECA (EDICIÓN COMPLETA)
+   Incluye:
    - Sintetizador polifónico cálido tipo Marimba/Kalimba (estilo Duolingo)
-   - Mascota animada SVG ("Lumi") con reacciones en vivo y bocadillo
-   - Animaciones con físicas elásticas (spring), partículas, +XP flotante y estrellas secuenciales
+   - Mascota animada SVG ("Lumi") con reacciones en vivo
+   - Sistema de 5 Vidas (❤️) + Reto Relámpago de Cálculo (1 cifra contrarreloj) para recargar vidas
+   - Buzón de Fallos inteligente conectado con Modo Papi y Super-Admin
+   - Modo Simulacro de Examen con nota escolar sobre 10 y corrección detallada
+   - 3 Misiones Diarias + Cofre Diario + Tarjeta "Continuar Aventura" en Inicio
+   - Álbum de Trofeos de las 40 Misiones en Progreso
+   - Duelos temáticos entre amigas por Asignatura y Trivial Mixto
    ========================================================= */
 (function () {
 'use strict';
@@ -11,12 +17,13 @@ A.meta = A.meta || [];
 A.content = A.content || {};
 
 A.SUBJECTS = [
-  { key: 'Lengua Castellana y Literatura', short: 'Lengua',    icon: '📖', color: '#ec4899' },
-  { key: 'Matemáticas',                    short: 'Mates',     icon: '📐', color: '#8b5cf6' },
-  { key: 'Ciencias de la Naturaleza',      short: 'Naturales', icon: '🌿', color: '#10b981' },
-  { key: 'Ciencias Sociales',              short: 'Sociales',  icon: '🌍', color: '#f59e0b' }
+  { key: 'Lengua Castellana y Literatura', short: 'Lengua',    icon: '📖', color: '#ec4899', code: 'lengua' },
+  { key: 'Matemáticas',                    short: 'Mates',     icon: '📐', color: '#8b5cf6', code: 'mates_adv' },
+  { key: 'Ciencias de la Naturaleza',      short: 'Naturales', icon: '🌿', color: '#10b981', code: 'naturales' },
+  { key: 'Ciencias Sociales',              short: 'Sociales',  icon: '🌍', color: '#f59e0b', code: 'sociales' }
 ];
 A.NODE_ICONS = ['📘', '🧩', '🎯'];
+A.MAX_HEARTS = 5;
 
 /* ---------- utilidades ---------- */
 A.rnd = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
@@ -29,16 +36,80 @@ A.fmt = n => String(Math.round(n * 1e6) / 1e6).replace('.', ',');
 A.register = (id, data) => { A.content[id] = data; };
 A.getMeta = id => A.meta.find(m => m.id === id);
 A.missionsOf = key => A.meta.filter(m => m.subject === key);
-A.subjectOf = key => A.SUBJECTS.find(s => s.key === key);
+A.subjectOf = key => A.SUBJECTS.find(s => s.key === key) || A.SUBJECTS[0];
 A.stripHtml = h => String(h).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+const todayStr = () => new Date().toISOString().split('T')[0];
 
-/* ---------- progreso ---------- */
+/* ---------- progreso, vidas, buzón de fallos y misiones diarias ---------- */
 A.st = function () {
   const c = window.app && window.app.curr;
   if (!c) return {};
   if (!c.adv) c.adv = {};
   return c.adv;
 };
+A.metaSt = function () {
+  const c = window.app && window.app.curr;
+  const td = todayStr();
+  if (!c) return { hearts: 5, lastDate: td, inbox: [], quests: { date: td, lessons: 0, maxCombo: 0, sprints: 0, chest: false } };
+  if (!c.advMeta) c.advMeta = { hearts: 5, lastDate: td, inbox: [], quests: { date: td, lessons: 0, maxCombo: 0, sprints: 0, chest: false } };
+  const m = c.advMeta;
+  if (typeof m.hearts !== 'number') m.hearts = 5;
+  if (!Array.isArray(m.inbox)) m.inbox = [];
+  if (!m.quests || m.quests.date !== td) {
+    m.quests = { date: td, lessons: 0, maxCombo: 0, sprints: 0, chest: false };
+  }
+  if (m.lastDate !== td) {
+    m.hearts = A.MAX_HEARTS;
+    m.lastDate = td;
+  }
+  return m;
+};
+A.hearts = () => A.metaSt().hearts;
+A.addHearts = function (n) {
+  const m = A.metaSt();
+  m.hearts = Math.min(A.MAX_HEARTS, Math.max(0, m.hearts + n));
+  A.saveProgress();
+  return m.hearts;
+};
+A.recordQuest = function (field, val, isMax) {
+  const q = A.metaSt().quests;
+  if (isMax) q[field] = Math.max(q[field] || 0, val);
+  else q[field] = (q[field] || 0) + val;
+  A.saveProgress();
+};
+A.recordFail = function (missionId, ex, correctStr) {
+  const c = window.app && window.app.curr;
+  if (!c) return;
+  const meta = A.getMeta(missionId);
+  const subShort = meta ? A.subjectOf(meta.subject).short : 'General';
+  const qClean = A.stripHtml(ex.q || 'Pregunta');
+  const corrClean = A.stripHtml(correctStr || '');
+
+  // Guardar en el historial de fallos de Modo Papi / Super-Admin
+  if (!Array.isArray(c.fails)) c.fails = [];
+  const label = `[${subShort} · ${meta ? meta.title : 'Misión'}] ${qClean.slice(0, 85)}`;
+  if (!c.fails.some(f => f && f.q === label)) {
+    c.fails.push({ q: label, ans: 'Fallo en lección', expected: corrClean.slice(0, 70), d: new Date().toISOString() });
+    if (c.fails.length > 40) c.fails = c.fails.slice(-40);
+  }
+
+  // Guardar en el Buzón de Fallos interactivo de la alumna (si es ejercicio fijo serializable)
+  if (ex.src && ex.src.t !== 'gen') {
+    const inbox = A.metaSt().inbox;
+    const key = missionId + '|' + qClean;
+    if (!inbox.some(it => it.key === key)) {
+      inbox.push({ key, missionId, ex: ex.src, t: Date.now() });
+      if (inbox.length > 30) inbox.shift();
+    }
+  }
+  A.saveProgress();
+};
+A.removeInboxKey = function (key) {
+  const m = A.metaSt();
+  m.inbox = m.inbox.filter(it => it.key !== key);
+  A.saveProgress();
+};
+
 A.ms = function (id) {
   const s = A.st();
   if (!s[id]) s[id] = { s: [0, 0, 0], b: 0, stars: [0, 0, 0, 0] };
@@ -47,6 +118,7 @@ A.ms = function (id) {
 A.nodeDone = (id, k) => { const m = A.ms(id); return k < 3 ? !!m.s[k] : !!m.b; };
 A.missionDone = id => [0, 1, 2, 3].every(k => A.nodeDone(id, k));
 A.missionProgress = id => [0, 1, 2, 3].filter(k => A.nodeDone(id, k)).length;
+A.missionStars = id => (A.ms(id).stars || [0, 0, 0, 0]).reduce((a, b) => a + (b || 0), 0);
 A.unlocked = function (id, k) {
   if (k > 0) return A.nodeDone(id, k - 1);
   const m = A.getMeta(id), list = A.missionsOf(m.subject), mi = list.findIndex(x => x.id === id);
@@ -99,7 +171,6 @@ function getAudio() {
       comp.threshold.value = -14;
       comp.ratio.value = 4;
 
-      // Eco suave para dar calidez de sala
       const delay = actx.createDelay();
       delay.delayTime.value = 0.11;
       const fb = actx.createGain();
@@ -121,16 +192,13 @@ function getAudio() {
   } catch (e) { return null; }
 }
 
-// Toca una nota cálida tipo marimba/kalimba con armónicos suaves
 function playNote(freq, dur, when, vol, brightness) {
   const ctx = getAudio();
   if (!ctx || !masterBus) return;
   const t0 = ctx.currentTime + (when || 0);
   const v = vol || 0.22;
 
-  // Oscilador fundamental (cuerpo cálido)
-  const o1 = ctx.createOscillator();
-  const g1 = ctx.createGain();
+  const o1 = ctx.createOscillator(), g1 = ctx.createGain();
   o1.type = 'sine';
   o1.frequency.setValueAtTime(freq, t0);
   g1.gain.setValueAtTime(0.0001, t0);
@@ -139,9 +207,7 @@ function playNote(freq, dur, when, vol, brightness) {
   o1.connect(g1); g1.connect(masterBus);
   o1.start(t0); o1.stop(t0 + dur + 0.02);
 
-  // Segundo oscilador (octava superior suave tipo campana/kalimba)
-  const o2 = ctx.createOscillator();
-  const g2 = ctx.createGain();
+  const o2 = ctx.createOscillator(), g2 = ctx.createGain();
   o2.type = 'triangle';
   o2.frequency.setValueAtTime(freq * (brightness || 2), t0);
   g2.gain.setValueAtTime(0.0001, t0);
@@ -150,9 +216,7 @@ function playNote(freq, dur, when, vol, brightness) {
   o2.connect(g2); g2.connect(masterBus);
   o2.start(t0); o2.stop(t0 + dur * 0.6 + 0.02);
 
-  // Pequeño golpe de maza de madera al inicio (transitorio percusivo)
-  const o3 = ctx.createOscillator();
-  const g3 = ctx.createGain();
+  const o3 = ctx.createOscillator(), g3 = ctx.createGain();
   o3.type = 'sine';
   o3.frequency.setValueAtTime(freq * 3.2, t0);
   o3.frequency.exponentialRampToValueAtTime(freq, t0 + 0.028);
@@ -164,7 +228,6 @@ function playNote(freq, dur, when, vol, brightness) {
 }
 
 A.sfx = {
-  // Burbuja / toque de ficha táctil suave
   tap() {
     const ctx = getAudio(); if (!ctx || !masterBus) return;
     const t0 = ctx.currentTime;
@@ -178,45 +241,42 @@ A.sfx = {
     o.connect(g); g.connect(masterBus);
     o.start(t0); o.stop(t0 + 0.06);
   },
-  // Transición suave al cambiar de tarjeta
-  slide() {
-    playNote(523.25, 0.12, 0, 0.08, 1.5);
-  },
-  // Acierto estilo Duolingo (sube de tono con la racha de combos!)
+  slide() { playNote(523.25, 0.12, 0, 0.08, 1.5); },
   ok(combo) {
     const shift = Math.pow(2, Math.min((combo || 1) - 1, 6) / 12);
-    playNote(587.33 * shift, 0.22, 0,     0.22, 2);   // Re5
-    playNote(880.00 * shift, 0.42, 0.085, 0.26, 2);   // La5
-    if ((combo || 0) >= 3) {
-      playNote(1174.66 * shift, 0.45, 0.16, 0.20, 2); // Re6 brillante en racha
-    }
+    playNote(587.33 * shift, 0.22, 0,     0.22, 2);
+    playNote(880.00 * shift, 0.42, 0.085, 0.26, 2);
+    if ((combo || 0) >= 3) playNote(1174.66 * shift, 0.45, 0.16, 0.20, 2);
   },
-  // Error empático y grave (madera suave, cero estridencia)
   err() {
-    const ctx = getAudio(); if (!ctx || !masterBus) return;
-    playNote(311.13, 0.22, 0,    0.18, 1); // Mib4
-    playNote(233.08, 0.36, 0.11, 0.20, 1); // Sib3
+    playNote(311.13, 0.22, 0,    0.18, 1);
+    playNote(233.08, 0.36, 0.11, 0.20, 1);
   },
-  // Estrella individual al caer en la pantalla final
+  heartBreak() {
+    playNote(349.23, 0.18, 0,    0.20, 1);
+    playNote(261.63, 0.22, 0.09, 0.20, 1);
+    playNote(196.00, 0.35, 0.18, 0.22, 1);
+  },
+  heal() {
+    [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => playNote(f, 0.28, i * 0.07, 0.22, 2));
+  },
   star(idx) {
-    const notes = [659.25, 783.99, 1046.50]; // Mi5, Sol5, Do6
+    const notes = [659.25, 783.99, 1046.50];
     playNote(notes[idx % 3], 0.38, 0, 0.25, 2);
   },
-  // Fanfarria triunfal polifónica al terminar la lección
   done() {
     const mel = [
-      [523.25, 0.18, 0.00], // Do5
-      [659.25, 0.18, 0.10], // Mi5
-      [783.99, 0.18, 0.20], // Sol5
-      [1046.5, 0.55, 0.30], // Do6
-      [783.99, 0.18, 0.30], // Sol5 (acorde)
-      [659.25, 0.45, 0.30]  // Mi5 (acorde)
+      [523.25, 0.18, 0.00],
+      [659.25, 0.18, 0.10],
+      [783.99, 0.18, 0.20],
+      [1046.5, 0.55, 0.30],
+      [783.99, 0.18, 0.30],
+      [659.25, 0.45, 0.30]
     ];
     mel.forEach(([f, d, w]) => playNote(f, d, w, 0.20, 2));
   }
 };
 
-// Mejoramos también los sonidos globales de toda la plataforma para que ningún juego suene frío
 window.sfx = {
   ok: () => A.sfx.ok(1),
   err: () => A.sfx.err(),
@@ -233,7 +293,6 @@ A.speak = function (html) {
   } catch (e) {}
 };
 
-// Explosión de confeti rica y partículas flotantes
 A.confetti = function () {
   try {
     if (typeof expl === 'function') {
@@ -267,15 +326,15 @@ A.toast = (t, m) => { if (window.app) window.app.notify(t, m); };
 /* =========================================================
    MASCOTA ANIMADA "LUMI" (SVG EXPRESIVO ESTILO DUOLINGO)
    ========================================================= */
-function lumiSvg(mood) {
-  // mood: 'idle' | 'happy' | 'sad' | 'fire'
+function lumiSvg(mood, size) {
+  const sz = size || 74;
   const isHappy = mood === 'happy' || mood === 'fire';
   const isSad = mood === 'sad';
   const isFire = mood === 'fire';
   const bodyCol = isFire ? '#f59e0b' : (isSad ? '#6366f1' : '#8b5cf6');
   const bellyCol = isFire ? '#fef3c7' : '#ede9fe';
   return `
-  <svg class="adv-lumi-svg mood-${mood || 'idle'}" viewBox="0 0 120 120" width="74" height="74" aria-hidden="true">
+  <svg class="adv-lumi-svg mood-${mood || 'idle'}" viewBox="0 0 120 120" width="${sz}" height="${sz}" aria-hidden="true">
     <defs>
       <radialGradient id="lumiGlow" cx="50%" cy="50%" r="50%">
         <stop offset="0%" stop-color="${bodyCol}" stop-opacity="0.45"/>
@@ -284,23 +343,16 @@ function lumiSvg(mood) {
     </defs>
     <circle cx="60" cy="64" r="54" fill="url(#lumiGlow)"/>
     ${isFire ? `<path class="lumi-flame" d="M60 6 C72 22, 88 26, 82 44 C78 54, 42 54, 38 44 C32 26, 48 22, 60 6 Z" fill="#fbbf24" opacity="0.85"/>` : ''}
-    <!-- Sombra suelo -->
     <ellipse cx="60" cy="108" rx="28" ry="6" fill="rgba(0,0,0,0.35)"/>
-    <!-- Cuerpo principal -->
     <g class="lumi-body">
-      <!-- Orejitas / penachos -->
       <path d="M32 34 L22 18 L44 28 Z" fill="${bodyCol}"/>
       <path d="M88 34 L98 18 L76 28 Z" fill="${bodyCol}"/>
-      <!-- Cuerpo redondeado -->
       <rect x="24" y="24" width="72" height="74" rx="34" fill="${bodyCol}"/>
-      <!-- Barriguita -->
       <ellipse cx="60" cy="72" rx="23" ry="20" fill="${bellyCol}"/>
       <path d="M50 66 Q60 72 70 66" stroke="${bodyCol}" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.45"/>
       <path d="M53 75 Q60 80 67 75" stroke="${bodyCol}" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.45"/>
-      <!-- Alas -->
       <path class="lumi-wing-l" d="M24 52 C12 56, 12 78, 26 82 Z" fill="#6d28d9"/>
       <path class="lumi-wing-r" d="M96 52 C108 56, 108 78, 94 82 Z" fill="#6d28d9"/>
-      <!-- Ojos grandes expresivos -->
       <circle cx="44" cy="48" r="13" fill="#ffffff"/>
       <circle cx="76" cy="48" r="13" fill="#ffffff"/>
       ${isHappy ? `
@@ -321,20 +373,23 @@ function lumiSvg(mood) {
           <circle cx="72.5" cy="45.5" r="2.5" fill="#ffffff"/>
         </g>
       `}
-      <!-- Coloretes -->
       <ellipse cx="31" cy="58" rx="5.5" ry="3" fill="#f472b6" opacity="${isHappy ? 0.85 : 0.45}"/>
       <ellipse cx="89" cy="58" rx="5.5" ry="3" fill="#f472b6" opacity="${isHappy ? 0.85 : 0.45}"/>
-      <!-- Piquito -->
       <polygon points="55,53 65,53 60,61" fill="#fbbf24"/>
-      <!-- Patitas -->
       <ellipse cx="47" cy="99" rx="7" ry="4" fill="#fbbf24"/>
       <ellipse cx="73" cy="99" rx="7" ry="4" fill="#fbbf24"/>
     </g>
-    ${isHappy ? `
-      <text x="14" y="26" font-size="16" class="lumi-star">✨</text>
-      <text x="94" y="24" font-size="15" class="lumi-star">⭐</text>
-    ` : ''}
+    ${isHappy ? `<text x="14" y="26" font-size="16" class="lumi-star">✨</text><text x="94" y="24" font-size="15" class="lumi-star">⭐</text>` : ''}
   </svg>`;
+}
+A.lumiSvg = lumiSvg;
+
+function heartsHtml(n) {
+  let s = '';
+  for (let i = 0; i < A.MAX_HEARTS; i++) {
+    s += `<span class="adv-heart ${i < n ? 'on' : 'off'}">${i < n ? '❤️' : '🖤'}</span>`;
+  }
+  return s;
 }
 
 /* ---------- CSS ---------- */
@@ -377,16 +432,29 @@ function ensureCss() {
 .adv-lbl{font-size:.74rem;font-weight:700;opacity:.8;margin-top:.55rem;max-width:155px;text-align:center}
 .adv-stars{font-size:.85rem;letter-spacing:2px;margin-top:.25rem}
 
+/* Barra de vidas (corazones) y buzón de fallos */
+.adv-topbar-tools{display:flex;align-items:center;gap:.65rem;flex-wrap:wrap}
+.adv-hearts-pill{display:inline-flex;align-items:center;gap:.35rem;background:rgba(239,68,68,.12);border:2px solid rgba(239,68,68,.35);border-radius:99px;padding:.4rem .85rem;font-weight:800;font-size:.9rem}
+.adv-heart{display:inline-block;transition:transform .25s cubic-bezier(.34,1.56,.64,1)}
+.adv-heart.off{opacity:.38;transform:scale(.85)}
+.adv-hearts-pill.shake{animation:advShake .42s ease}
+.adv-tool-btn{border:2px solid rgba(255,255,255,.22);border-bottom-width:4px;border-radius:16px;padding:.48rem .9rem;font-weight:800;font-size:.82rem;color:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:.4rem;transition:transform .15s}
+.adv-tool-btn:hover{transform:translateY(-2px)}
+.adv-tool-btn:active{transform:translateY(2px)}
+.adv-tool-btn.recharge{background:linear-gradient(135deg,#ec4899,#8b5cf6);border-color:rgba(244,114,182,.5)}
+.adv-tool-btn.inbox{background:rgba(245,158,11,.18);border-color:rgba(245,158,11,.45);color:#fde68a}
+.adv-tool-btn.exam{background:linear-gradient(135deg,#06b6d4,#3b82f6);border-color:rgba(56,189,248,.5)}
+
 /* Overlay de lección */
 .adv-ov{position:fixed;inset:0;z-index:900;background:radial-gradient(circle at 50% 0,#1e1b4b 0,#070b14 72%);display:none;flex-direction:column}
-.adv-top{display:flex;align-items:center;gap:1rem;padding:calc(.9rem + env(safe-area-inset-top)) 1.2rem .6rem;max-width:760px;width:100%;margin:0 auto}
-.adv-x{background:rgba(255,255,255,.06);border:none;color:#94a3b8;font-size:1.3rem;cursor:pointer;width:40px;height:40px;border-radius:12px;transition:.15s}
+.adv-top{display:flex;align-items:center;gap:.8rem;padding:calc(.9rem + env(safe-area-inset-top)) 1.2rem .6rem;max-width:760px;width:100%;margin:0 auto}
+.adv-x{background:rgba(255,255,255,.06);border:none;color:#94a3b8;font-size:1.3rem;cursor:pointer;width:40px;height:40px;border-radius:12px;transition:.15s;flex-shrink:0}
 .adv-x:hover{background:rgba(255,255,255,.14);color:#fff;transform:scale(1.06)}
 .adv-bar{flex:1;height:18px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden;position:relative;padding:3px}
 .adv-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--c,#8b5cf6),color-mix(in srgb,var(--c,#8b5cf6) 75%,#fff));border-radius:99px;transition:width .55s cubic-bezier(.34,1.56,.64,1);position:relative;box-shadow:0 0 16px color-mix(in srgb,var(--c,#8b5cf6) 65%,transparent)}
 .adv-bar i::after{content:'';position:absolute;top:2px;left:8px;right:8px;height:4px;background:rgba(255,255,255,.38);border-radius:99px}
 .adv-bar.fire i{background:linear-gradient(90deg,#f59e0b,#ef4444,#fbbf24);box-shadow:0 0 20px rgba(251,191,36,.7)}
-.adv-combo{font-weight:900;color:#fbbf24;min-width:68px;text-align:right;font-size:1rem;transition:transform .25s cubic-bezier(.34,1.56,.64,1)}
+.adv-combo{font-weight:900;color:#fbbf24;text-align:right;font-size:.95rem;transition:transform .25s cubic-bezier(.34,1.56,.64,1);white-space:nowrap}
 .adv-combo.pop{animation:advComboPop .45s cubic-bezier(.34,1.56,.64,1)}
 @keyframes advComboPop{0%{transform:scale(.6)}50%{transform:scale(1.35)}100%{transform:scale(1)}}
 
@@ -407,7 +475,7 @@ function ensureCss() {
 @keyframes lumiWingL{0%,100%{transform:rotate(0)}50%{transform:rotate(10deg)}}
 @keyframes lumiWingR{0%,100%{transform:rotate(0)}50%{transform:rotate(-10deg)}}
 
-/* Escenario de ejercicio con entrada elástica */
+/* Escenario de ejercicio */
 .adv-body{flex:1;overflow-y:auto;padding:.8rem 1.2rem 1.2rem;max-width:760px;width:100%;margin:0 auto;-webkit-overflow-scrolling:touch}
 .adv-stage-enter{animation:advStageIn .36s cubic-bezier(.22,1,.36,1)}
 @keyframes advStageIn{from{opacity:0;transform:translateX(28px) scale(.98)}to{opacity:1;transform:translateX(0) scale(1)}}
@@ -456,7 +524,7 @@ function ensureCss() {
 .adv-w.good{border-color:var(--success);background:rgba(16,185,129,.28);animation:advPopGood .38s}
 .adv-w.bad{border-color:var(--error);background:rgba(239,68,68,.28);animation:advShake .4s}
 
-/* Cajón inferior de feedback con rebote elástico */
+/* Cajón inferior de feedback */
 .adv-foot{border-top:2px solid rgba(255,255,255,.08);padding:1rem 1.2rem calc(1rem + env(safe-area-inset-bottom));transition:background .25s,border-color .25s}
 .adv-foot .in{max-width:760px;margin:0 auto}
 .adv-foot.ok{background:linear-gradient(180deg,#064e3b,#042f2e);border-color:#10b981;animation:advDrawerUp .32s cubic-bezier(.34,1.56,.64,1)}
@@ -477,21 +545,42 @@ function ensureCss() {
 .adv-foot.ok .adv-main{background:#10b981;box-shadow:0 6px 0 #047857}
 .adv-foot.bad .adv-main{background:#ef4444;box-shadow:0 6px 0 #991b1b}
 
-/* Píldora teórica y pantalla de victoria */
+/* Píldora y resultados */
 .adv-pill{background:var(--glass);border:1px solid var(--glass-border);border-radius:26px;padding:1.6rem;text-align:left;animation:advStageIn .38s cubic-bezier(.22,1,.36,1)}
 .adv-pill .em{font-size:3rem;display:inline-block;margin-bottom:.4rem;animation:advBob 2s ease-in-out infinite}
 .adv-pill h2{font-size:1.5rem;margin-bottom:.7rem;color:#fbbf24}
 .adv-pill p{font-size:1.12rem;line-height:1.75;opacity:.95}
-.adv-res{text-align:center;padding-top:1.2rem;animation:advStageIn .45s cubic-bezier(.22,1,.36,1)}
+.adv-res{text-align:center;padding-top:1rem;animation:advStageIn .45s cubic-bezier(.22,1,.36,1)}
 .adv-res h2{font-size:2rem;margin:.4rem 0;font-weight:900}
 .adv-res .st{font-size:3.2rem;letter-spacing:8px;margin:.7rem 0;min-height:3.8rem}
 .adv-star-pop{display:inline-block;opacity:0;transform:scale(0) rotate(-25deg);transition:transform .42s cubic-bezier(.34,1.56,.64,1),opacity .25s}
 .adv-star-pop.on{opacity:1;transform:scale(1) rotate(0)}
 .adv-res .stat{display:inline-block;background:var(--glass);border:2px solid var(--glass-border);border-radius:18px;padding:.75rem 1.3rem;margin:.35rem;font-weight:800;font-size:1.05rem}
+.adv-grade-circle{width:130px;height:130px;border-radius:50%;margin:.6rem auto;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:900;border:6px solid var(--c,#10b981);background:rgba(255,255,255,.04);box-shadow:0 0 30px color-mix(in srgb,var(--c,#10b981) 40%,transparent)}
+.adv-grade-circle .num{font-size:2.4rem;line-height:1}
+.adv-grade-circle .lbl{font-size:.75rem;opacity:.8;margin-top:4px}
+
+/* Modal Reto Relámpago de Recarga de Vidas */
+.adv-sprint-ov{position:fixed;inset:0;z-index:1100;background: rgba(7,11,20,.92);backdrop-filter:blur(14px);display:none;align-items:center;justify-content:center;padding:1rem}
+.adv-sprint-card{background:linear-gradient(145deg,#1e1b4b,#0f172a);border:2px solid rgba(236,72,153,.45);border-radius:28px;padding:1.6rem;width:100%;max-width:440px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.65);animation:advPopGood .35s cubic-bezier(.34,1.56,.64,1)}
+.adv-sprint-op{font-size:3.4rem;font-weight:900;margin:.6rem 0;color:#fff;letter-spacing:2px}
+.adv-sprint-dots{display:flex;justify-content:center;gap:.45rem;margin:.6rem 0}
+.adv-sprint-dot{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.15);transition:.2s}
+.adv-sprint-dot.ok{background:#10b981;box-shadow:0 0 10px #10b981;transform:scale(1.15)}
 
 /* Globo +XP flotante */
 .adv-float-xp{position:fixed;z-index:2000;pointer-events:none;font-weight:900;font-size:1.35rem;color:#fbbf24;text-shadow:0 4px 14px rgba(0,0,0,.65);transform:translate(-50%,-50%);animation:advFloatUp 1.05s cubic-bezier(.22,1,.36,1) forwards}
 @keyframes advFloatUp{0%{opacity:0;transform:translate(-50%,0) scale(.6)}25%{opacity:1;transform:translate(-50%,-18px) scale(1.15)}100%{opacity:0;transform:translate(-50%,-70px) scale(.95)}}
+
+/* Misiones diarias y Álbum de trofeos */
+.adv-quest-row{display:flex;align-items:center;gap:.9rem;background:rgba(255,255,255,.03);border:1px solid var(--glass-border);border-radius:16px;padding:.75rem 1rem;margin-bottom:.6rem}
+.adv-quest-bar{height:10px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;margin-top:.35rem}
+.adv-quest-bar i{display:block;height:100%;background:linear-gradient(90deg,#10b981,#34d399);border-radius:99px;transition:width .4s}
+.adv-trophy-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.75rem;margin-top:.8rem}
+.adv-trophy{background:rgba(255,255,255,.03);border:2px solid var(--glass-border);border-radius:18px;padding:.85rem;text-align:center;transition:.2s;cursor:pointer}
+.adv-trophy.won{background:linear-gradient(145deg,rgba(251,191,36,.16),rgba(139,92,246,.12));border-color:#fbbf24;box-shadow:0 6px 18px rgba(251,191,36,.15)}
+.adv-trophy.lock{opacity:.48;filter:grayscale(.9)}
+.adv-trophy:hover{transform:translateY(-3px)}
 
 /* Biblioteca */
 .adv-libcard{background:var(--glass);border:1px solid var(--glass-border);border-radius:20px;padding:1.1rem 1.2rem;cursor:pointer;transition:.2s;display:flex;gap:1rem;align-items:center}
@@ -511,10 +600,10 @@ function ensureCss() {
 }
 
 /* ---------- preparación de ejercicios ---------- */
-function prepare(src, rev) {
+function prepare(src, rev, missionId) {
   let e = src;
   if (e.t === 'gen') e = e.f();
-  const p = Object.assign({}, e, { src: src, rev: !!rev });
+  const p = Object.assign({}, e, { src: src, rev: !!rev, missionId: missionId || e.missionId });
   if (p.t === 'choice') {
     const opts = p.o.map((x, i) => ({ x, ok: i === p.a }));
     p.opts = p.keep ? opts : A.shuffle(opts);
@@ -532,17 +621,17 @@ function prepare(src, rev) {
 function qKey(e) { return A.stripHtml(e.q || '') + '|' + (e.t || ''); }
 function allPool(id) {
   const c = A.content[id]; if (!c) return [];
-  return c.stations.map(s => s.ex || []);
+  return c.stations.map(s => (s.ex || []).map(x => Object.assign({}, x, { missionId: id })));
 }
-function sampleFrom(pools, n) {
+function sampleFrom(pools, n, defaultMissionId) {
   const used = new Set(), out = [];
   const flat = [];
   pools.forEach((pl, pi) => A.shuffle(pl).forEach(e => flat.push({ e, pi })));
-  const per = Math.max(1, Math.ceil(n / pools.length));
+  const per = Math.max(1, Math.ceil(n / Math.max(1, pools.length)));
   const taken = new Array(pools.length).fill(0);
   const tryAdd = (e) => {
     for (let k = 0; k < (e.t === 'gen' ? 6 : 1); k++) {
-      const p = prepare(e);
+      const p = prepare(e, false, e.missionId || defaultMissionId);
       const key = qKey(p);
       if (!used.has(key)) { used.add(key); out.push(p); return true; }
     }
@@ -560,7 +649,7 @@ function reviewItems(id) {
   for (let i = 0; i < 2; i++) {
     const mm = A.pick(done), pools = allPool(mm.id).flat();
     const src = A.pick(pools); if (!src) continue;
-    const p = prepare(src, true); const k = qKey(p);
+    const p = prepare(src, true, mm.id); const k = qKey(p);
     if (!used.has(k)) { used.add(k); out.push(p); }
   }
   return out;
@@ -726,6 +815,155 @@ R.tap = function (e, stage, onChange) {
   };
 };
 
+/* =========================================================
+   ⚡ RETO RELÁMPAGO DE CÁLCULO (PARA RECARGAR VIDAS ❤️)
+   6 operaciones de 1 cifra en 25 segundos con Numpad táctil
+   ========================================================= */
+let SP = null;
+function ensureSprintModal() {
+  ensureCss();
+  if (document.getElementById('adv-sprint')) return;
+  const d = el('div', 'adv-sprint-ov'); d.id = 'adv-sprint';
+  d.innerHTML = `<div class="adv-sprint-card" id="adv-sprint-card"></div>`;
+  document.body.appendChild(d);
+}
+function genSprintOps(count) {
+  const ops = [];
+  for (let i = 0; i < count; i++) {
+    const kind = A.rnd(1, 10);
+    if (kind <= 6) {
+      // Multiplicación de 1 cifra por 1 cifra (tablas del 2 al 9)
+      const a = A.rnd(2, 9), b = A.rnd(2, 9);
+      ops.push({ q: `${a} × ${b}`, a: a * b });
+    } else if (kind <= 8) {
+      // Suma ágil de 1 cifra
+      const a = A.rnd(3, 9), b = A.rnd(3, 9);
+      ops.push({ q: `${a} + ${b}`, a: a + b });
+    } else {
+      // Resta ágil de 1 cifra
+      const b = A.rnd(2, 8), a = b + A.rnd(2, 9);
+      ops.push({ q: `${a} − ${b}`, a: a - b });
+    }
+  }
+  return ops;
+}
+A.openHeartSprint = function (onDoneCallback) {
+  ensureSprintModal();
+  getAudio();
+  const modal = document.getElementById('adv-sprint');
+  const card = document.getElementById('adv-sprint-card');
+  modal.style.display = 'flex';
+  if (SP && SP.timer) clearInterval(SP.timer);
+
+  card.innerHTML = `
+    <div style="display:flex;justify-content:center">${lumiSvg('fire', 72)}</div>
+    <h2 style="font-size:1.55rem;font-weight:900;margin:.3rem 0">⚡ Reto Relámpago de Vidas</h2>
+    <p style="font-size:.9rem;opacity:.85;line-height:1.45;margin-bottom:1rem">Resuelve <b>6 operaciones de 1 cifra</b> en menos de <b>25 segundos</b> para recargar <b>+3 ❤️</b> (y ganar +15 XP).</p>
+    <div style="margin-bottom:1.2rem;font-size:1.2rem">${heartsHtml(A.hearts())}</div>
+    <div style="display:flex;gap:.6rem">
+      <button class="adv-main" style="background:linear-gradient(135deg,#ec4899,#8b5cf6)" id="adv-sprint-go">🚀 ¡Empezar Reto (25s)!</button>
+      <button class="adv-main" style="background:#334155;width:auto;padding:1rem 1.2rem" id="adv-sprint-cancel">Cerrar</button>
+    </div>`;
+  document.getElementById('adv-sprint-cancel').onclick = () => {
+    modal.style.display = 'none';
+    if (onDoneCallback) onDoneCallback(false);
+  };
+  document.getElementById('adv-sprint-go').onclick = () => runSprintGame(onDoneCallback);
+};
+
+function runSprintGame(onDoneCallback) {
+  const modal = document.getElementById('adv-sprint');
+  const card = document.getElementById('adv-sprint-card');
+  const ops = genSprintOps(6);
+  SP = { ops, idx: 0, val: '', timeLeft: 25, timer: null, cb: onDoneCallback };
+
+  function renderPlay() {
+    const cur = SP.ops[SP.idx];
+    const dots = SP.ops.map((_, i) => `<span class="adv-sprint-dot ${i < SP.idx ? 'ok' : ''}"></span>`).join('');
+    card.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
+        <span style="font-weight:800;font-size:.85rem;opacity:.75">Operación ${SP.idx + 1} de ${SP.ops.length}</span>
+        <span id="adv-sprint-time" style="font-weight:900;font-size:1.1rem;color:#fbbf24">⏱️ ${SP.timeLeft}s</span>
+      </div>
+      <div class="adv-sprint-dots">${dots}</div>
+      <div class="adv-sprint-op">${cur.q} = <span id="adv-sprint-val" style="color:#38bdf8;border-bottom:3px solid #38bdf8;padding:0 .3rem">${SP.val || '?'}</span></div>
+      <div class="adv-pad" style="margin-top:.8rem">
+        ${['1','2','3','4','5','6','7','8','9','0','⌫'].map(k => `<button data-k="${k}" style="${k==='0'?'grid-column:span 2':''}">${k}</button>`).join('')}
+      </div>`;
+    card.querySelectorAll('.adv-pad button').forEach(b => {
+      b.onclick = () => {
+        const k = b.dataset.k;
+        A.sfx.tap();
+        if (k === '⌫') SP.val = SP.val.slice(0, -1);
+        else if (SP.val.length < 3) SP.val += k;
+        const vEl = document.getElementById('adv-sprint-val');
+        if (vEl) vEl.textContent = SP.val || '?';
+        const expected = String(cur.a);
+        if (SP.val === expected) {
+          A.sfx.ok(SP.idx + 1);
+          A.burstAt(vEl, '✨');
+          SP.idx++;
+          SP.val = '';
+          if (SP.idx >= SP.ops.length) finishSprint(true);
+          else renderPlay();
+        } else if (SP.val.length >= expected.length) {
+          A.sfx.err();
+          SP.val = '';
+          if (vEl) { vEl.textContent = '✗'; vEl.style.color = '#ef4444'; setTimeout(() => { if (vEl) { vEl.textContent = '?'; vEl.style.color = '#38bdf8'; } }, 280); }
+        }
+      };
+    });
+  }
+
+  renderPlay();
+  SP.timer = setInterval(() => {
+    SP.timeLeft--;
+    const tEl = document.getElementById('adv-sprint-time');
+    if (tEl) {
+      tEl.textContent = `⏱️ ${SP.timeLeft}s`;
+      if (SP.timeLeft <= 7) tEl.style.color = '#ef4444';
+    }
+    if (SP.timeLeft <= 0) finishSprint(false);
+  }, 1000);
+}
+
+function finishSprint(won) {
+  if (SP && SP.timer) { clearInterval(SP.timer); SP.timer = null; }
+  const modal = document.getElementById('adv-sprint');
+  const card = document.getElementById('adv-sprint-card');
+  const cb = SP && SP.cb;
+  if (won) {
+    A.addHearts(3);
+    A.recordQuest('sprints', 1, false);
+    if (window.app) window.app.addXP(15);
+    A.sfx.heal();
+    A.confetti();
+    card.innerHTML = `
+      <div style="display:flex;justify-content:center">${lumiSvg('fire', 80)}</div>
+      <h2 style="font-size:1.7rem;font-weight:900;color:#34d399;margin:.4rem 0">¡Vidas Recargadas! ❤️</h2>
+      <div style="font-size:1.4rem;margin:.6rem 0">${heartsHtml(A.hearts())}</div>
+      <p style="opacity:.9;margin-bottom:1.2rem">¡6 de 6 a toda velocidad! Has recuperado corazones y ganado <b>+15 XP</b>.</p>
+      <button class="adv-main" style="background:#10b981" id="adv-sprint-done">¡Seguir jugando!</button>`;
+    document.getElementById('adv-sprint-done').onclick = () => {
+      modal.style.display = 'none';
+      A.updateTopHearts();
+      if (cb) cb(true);
+    };
+  } else {
+    A.sfx.err();
+    card.innerHTML = `
+      <div style="display:flex;justify-content:center">${lumiSvg('sad', 74)}</div>
+      <h2 style="font-size:1.5rem;font-weight:900;color:#fca5a5;margin:.4rem 0">¡Tiempo agotado! ⏱️</h2>
+      <p style="opacity:.85;margin-bottom:1.2rem">¡Por poquito! Inténtalo otra vez para recuperar tus corazones.</p>
+      <div style="display:flex;gap:.6rem">
+        <button class="adv-main" id="adv-sprint-retry">🔄 Reintentar (25s)</button>
+        <button class="adv-main" style="background:#334155;width:auto;padding:1rem 1.2rem" id="adv-sprint-exit">Salir</button>
+      </div>`;
+    document.getElementById('adv-sprint-retry').onclick = () => runSprintGame(cb);
+    document.getElementById('adv-sprint-exit').onclick = () => { modal.style.display = 'none'; if (cb) cb(false); };
+  }
+}
+
 /* ---------- sesión de lección (overlay) ---------- */
 let S = null;
 const CHEERS_IDLE = [
@@ -747,7 +985,12 @@ function ensureOverlay() {
   if (document.getElementById('adv-lesson')) return;
   const o = el('div', 'adv-ov'); o.id = 'adv-lesson';
   o.innerHTML = `
-    <div class="adv-top"><button class="adv-x" id="adv-x" aria-label="Salir">✕</button><div class="adv-bar" id="adv-bar"><i id="adv-barfill"></i></div><div class="adv-combo" id="adv-combo"></div></div>
+    <div class="adv-top">
+      <button class="adv-x" id="adv-x" aria-label="Salir">✕</button>
+      <div class="adv-bar" id="adv-bar"><i id="adv-barfill"></i></div>
+      <div id="adv-top-hearts" style="font-size:.9rem;white-space:nowrap"></div>
+      <div class="adv-combo" id="adv-combo"></div>
+    </div>
     <div class="adv-body"><div id="adv-mascot"></div><div id="adv-stage"></div></div>
     <div class="adv-foot" id="adv-foot"><div class="in"><div id="adv-fb"><div class="adv-fb-row"><div class="adv-fb-ico" id="adv-fb-ico">✓</div><div><h4></h4><p></p></div></div></div><button class="adv-main" id="adv-main">Comprobar</button></div></div>`;
   document.body.appendChild(o);
@@ -757,6 +1000,19 @@ function ensureOverlay() {
   };
   document.getElementById('adv-main').onclick = onMain;
 }
+A.updateTopHearts = function () {
+  const hEl = document.getElementById('adv-top-hearts');
+  if (!hEl || !S) return;
+  if (S.cfg.useHearts) {
+    hEl.innerHTML = `<span class="adv-hearts-pill" id="adv-lesson-hearts" style="padding:.25rem .6rem;font-size:.82rem">${heartsHtml(A.hearts())}</span>`;
+  } else if (S.cfg.isExam) {
+    hEl.innerHTML = `<span class="adv-chip" style="background:rgba(6,182,212,.2);color:#38bdf8">📝 Examen</span>`;
+  } else if (S.cfg.isBattle) {
+    hEl.innerHTML = `<span class="adv-chip" style="background:rgba(236,72,153,.2);color:#f472b6">⚔️ Duelo</span>`;
+  } else {
+    hEl.innerHTML = `<span class="adv-chip">📚 Libre</span>`;
+  }
+};
 function setMascot(mood, text) {
   const m = document.getElementById('adv-mascot');
   if (!m) return;
@@ -775,9 +1031,19 @@ function setBar() {
 A.runSession = function (cfg) {
   ensureOverlay();
   getAudio();
-  S = { cfg, queue: cfg.items.slice(), total: cfg.items.length, done: 0, ft: 0, wrong: 0, combo: 0, mode: '', cur: null, ctl: null, pillIdx: 0, pills: cfg.intro || [] };
+  if (cfg.useHearts && A.hearts() <= 0) {
+    A.openHeartSprint((ok) => { if (ok && A.hearts() > 0) A.runSession(cfg); });
+    return;
+  }
+  S = {
+    cfg, queue: cfg.items.slice(), total: cfg.items.length,
+    done: 0, ft: 0, wrong: 0, combo: 0, maxCombo: 0,
+    mode: '', cur: null, ctl: null, pillIdx: 0, pills: cfg.intro || [],
+    failedLog: [], startTime: Date.now()
+  };
   document.getElementById('adv-lesson').style.setProperty('--c', cfg.color || '#8b5cf6');
   document.getElementById('adv-combo').textContent = '';
+  A.updateTopHearts();
   setBar(); overlay(true);
   if (S.pills.length) showPill(0); else nextEx();
 };
@@ -809,6 +1075,7 @@ function nextEx() {
 
   if (e.rev) stage.appendChild(el('span', 'adv-tag', '🔁 Repaso de misiones anteriores'));
   else if (e.retry) stage.appendChild(el('span', 'adv-tag', '🎯 Segunda oportunidad'));
+  else if (S.cfg.isExam) stage.appendChild(el('span', 'adv-tag', `📝 Pregunta ${S.done + 1} de ${S.total}`));
 
   const q = el('div', 'adv-q', e.q);
   const sp = el('button', 'adv-chipbtn', '🔊'); sp.style.cssText = 'padding:.15rem .6rem;margin-left:.6rem;font-size:.9rem;vertical-align:middle'; sp.onclick = () => A.speak(e.q); q.appendChild(sp);
@@ -825,6 +1092,15 @@ function onMain() {
     const r = S.ctl.check(), e = S.cur;
     resolve(r, e); return;
   }
+  if (S.mode === 'nohearts') {
+    A.openHeartSprint((ok) => {
+      if (ok && A.hearts() > 0) {
+        A.updateTopHearts();
+        nextEx();
+      }
+    });
+    return;
+  }
   if (S.mode === 'fb') { nextEx(); return; }
   if (S.mode === 'result') { closeLesson(true); return; }
 }
@@ -835,6 +1111,9 @@ function resolve(r, e) {
   const ico = document.getElementById('adv-fb-ico');
   if (ok) {
     S.done++; if (!retry) S.ft++; S.combo++;
+    if (S.combo > S.maxCombo) S.maxCombo = S.combo;
+    A.recordQuest('maxCombo', S.combo, true);
+    if (e.inboxKey && !retry) A.removeInboxKey(e.inboxKey);
     A.sfx.ok(S.combo);
     A.burstAt(r.targetEl || document.getElementById('adv-main'), S.combo >= 3 ? `🔥 x${S.combo}` : '✨ ¡Bien!');
     if (ico) ico.textContent = S.combo >= 3 ? '🔥' : '✓';
@@ -843,20 +1122,47 @@ function resolve(r, e) {
     f.querySelector('p').innerHTML = e.why || '';
     setMascot(S.combo >= 3 ? 'fire' : 'happy', S.combo >= 3 ? `¡${S.combo} aciertos seguidos! ¡Estás que te sales! 🔥` : `${praise} ¡Sigue así! 🎉`);
     setFoot('ok');
+    setMain('Continuar', false);
   } else {
-    A.sfx.err(); S.combo = 0; S.wrong++;
+    S.combo = 0; S.wrong++;
+    if (!retry) {
+      S.failedLog.push({ q: e.q, correct: r.correct, why: e.why });
+      if (e.missionId) A.recordFail(e.missionId, e, r.correct);
+    }
+    if (S.cfg.useHearts) {
+      A.sfx.heartBreak();
+      const left = A.addHearts(-1);
+      A.updateTopHearts();
+      const hp = document.getElementById('adv-lesson-hearts');
+      if (hp) { hp.classList.remove('shake'); void hp.offsetWidth; hp.classList.add('shake'); }
+      if (left <= 0) {
+        if (ico) ico.textContent = '💔';
+        f.querySelector('h4').textContent = '¡Te has quedado sin corazones! 💔';
+        f.querySelector('p').innerHTML = 'Respuesta correcta: <b>' + r.correct + '</b><br>' + (e.why || '') + '<br><b style="color:#fbbf24">⚡ Haz el Reto Relámpago de Cálculo (25s) para recargar +3 ❤️ y seguir aquí mismo.</b>';
+        setMascot('sad', '¡Sin vidas! Supera 6 cuentas de 1 cifra en 25s y seguimos donde íbamos 💪');
+        setFoot('bad');
+        const again = prepare(e.src, e.rev, e.missionId); again.retry = true; S.queue.push(again);
+        S.mode = 'nohearts';
+        setMain('⚡ Recargar Vidas Ahora (25s)', false);
+        return;
+      }
+    } else {
+      A.sfx.err();
+    }
     if (ico) ico.textContent = '💡';
     f.querySelector('h4').textContent = 'Respuesta correcta:';
     f.querySelector('p').innerHTML = '<b>' + r.correct + '</b>' + (e.why ? '<br><span style="opacity:.9">' + e.why + '</span>' : '');
-    setMascot('sad', '¡No pasa nada! Fíjate en la explicación y luego la repetimos 💡');
+    setMascot('sad', '¡No pasa nada! Fíjate en la explicación 💡');
     setFoot('bad');
-    if (S.cfg.noRetry) { S.done++; } else { const again = prepare(e.src, e.rev); again.retry = true; S.queue.push(again); }
+    if (S.cfg.noRetry) { S.done++; } else { const again = prepare(e.src, e.rev, e.missionId); again.retry = true; S.queue.push(again); }
+    setMain('Continuar', false);
   }
   const cbEl = document.getElementById('adv-combo');
   cbEl.textContent = S.combo >= 2 ? '🔥 ' + S.combo : '';
   if (S.combo >= 2) { cbEl.classList.remove('pop'); void cbEl.offsetWidth; cbEl.classList.add('pop'); }
-  setBar(); setMain('Continuar', false);
+  setBar();
 }
+
 function finish() {
   S.mode = 'result';
   const unique = S.cfg.items.length;
@@ -864,12 +1170,37 @@ function finish() {
   let stars = acc >= 0.9 ? 3 : acc >= 0.7 ? 2 : 1;
   let passed = true;
   if (S.cfg.noRetry) { passed = S.ft >= (S.cfg.passMin || unique - 1); stars = passed ? 3 : 0; }
+  if (!S.cfg.practice && !S.cfg.isExam) A.recordQuest('lessons', 1, false);
+
   let info = {};
-  if (S.cfg.onDone) info = S.cfg.onDone({ stars, acc, passed, ft: S.ft, total: unique }) || {};
+  if (S.cfg.onDone) info = S.cfg.onDone({ stars, acc, passed, ft: S.ft, total: unique, elapsedSec: Math.round((Date.now() - S.startTime) / 1000) }) || {};
   setFoot('');
   setMascot(null);
   document.getElementById('adv-barfill').style.width = '100%';
   const stage = document.getElementById('adv-stage');
+
+  // Si es Simulacro de Examen: mostrar boletín escolar con nota sobre 10
+  if (S.cfg.isExam) {
+    const nota = Math.round((S.ft / Math.max(1, unique)) * 100) / 10;
+    const notaStr = nota.toFixed(1).replace('.', ',');
+    const calif = nota >= 9 ? '🏆 SOBRESALIENTE' : nota >= 7 ? '🌟 NOTABLE' : nota >= 6 ? '👍 BIEN' : nota >= 5 ? '✔️ SUFICIENTE' : '💪 NECESITA REPASAR';
+    const col = nota >= 7 ? '#10b981' : nota >= 5 ? '#f59e0b' : '#ef4444';
+    const failsHtml = S.failedLog.length ? `<div style="text-align:left;margin-top:1.2rem"><h4 style="margin-bottom:.6rem;color:#fca5a5">📋 Repaso de las preguntas falladas (${S.failedLog.length}):</h4>` +
+      S.failedLog.map(fl => `<div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:14px;padding:.75rem 1rem;margin-bottom:.5rem"><div style="font-weight:700">${fl.q}</div><div style="color:#34d399;font-size:.9rem;margin-top:.2rem">✓ Respuesta: <b>${fl.correct}</b></div>${fl.why ? `<div style="font-size:.82rem;opacity:.85;margin-top:.2rem">${fl.why}</div>` : ''}</div>`).join('') + `</div>`
+      : `<p style="color:#34d399;font-weight:800;margin-top:1rem">🎉 ¡Examen impecable sin un solo fallo! Estás 100 % preparada para el control de clase.</p>`;
+
+    stage.innerHTML = `<div class="adv-res" style="--c:${col}">
+      <div style="display:flex;justify-content:center">${lumiSvg(nota >= 5 ? (nota >= 9 ? 'fire' : 'happy') : 'sad', 78)}</div>
+      <div class="adv-grade-circle"><span class="num">${notaStr}</span><span class="lbl">sobre 10</span></div>
+      <h2 style="color:${col}">${calif}</h2>
+      <div><span class="stat">🎯 ${S.ft} de ${unique} aciertos</span></div>
+      ${failsHtml}
+    </div>`;
+    if (nota >= 5) { A.sfx.done(); A.confetti(); } else A.sfx.err();
+    setMain('Finalizar Examen', false);
+    return;
+  }
+
   const title = passed ? (stars === 3 ? '¡Lección perfecta!' : '¡Lección completada!') : 'Casi lo consigues';
   const starSpans = passed ? [0, 1, 2].map(i => `<span class="adv-star-pop" id="adv-res-star-${i}">${i < stars ? '⭐' : '☆'}</span>`).join('') : '';
   stage.innerHTML = `<div class="adv-res">
@@ -920,10 +1251,11 @@ A.startStation = function (id, k, opt) {
   if (!needContent(id)) return;
   opt = opt || {};
   const st = A.content[id].stations[k];
-  const items = sampleFrom([st.ex], Math.min(7, st.ex.length * 1));
+  const items = sampleFrom([st.ex], Math.min(7, st.ex.length * 1), id);
   const rev = (k === 0 && !opt.practice) ? reviewItems(id) : [];
   A.runSession({
     title: st.title, color: color(id), items: rev.concat(items), intro: st.intro,
+    practice: !!opt.practice, useHearts: !opt.practice,
     onDone: (res) => {
       if (opt.practice) return { note: '📚 Modo biblioteca: practicas sin gastar ni ganar XP.' };
       const m = A.ms(id), wasDone = !!m.s[k], xp = wasDone ? 0 : A.xpSplit(id)[k];
@@ -937,9 +1269,10 @@ A.startStation = function (id, k, opt) {
 A.startBoss = function (id, opt) {
   if (!needContent(id)) return;
   opt = opt || {};
-  const items = sampleFrom(allPool(id), 9);
+  const items = sampleFrom(allPool(id), 9, id);
   A.runSession({
     title: 'Reto de Maestría', color: color(id), items, intro: [],
+    practice: !!opt.practice, useHearts: !opt.practice,
     onDone: (res) => {
       if (opt.practice) return { note: '📚 Modo biblioteca: practicas sin gastar ni ganar XP.' };
       const m = A.ms(id), was = !!m.b, xp = was ? 0 : A.xpSplit(id)[3];
@@ -953,9 +1286,9 @@ A.startJump = function (id) {
   if (!needContent(id)) return;
   if (A.missionDone(id)) { A.toast('✅ Misión superada', 'Ya has completado esta misión.'); return; }
   if (!confirm('⚡ EXAMEN DE SALTO\n\n5 preguntas de toda la misión. Si aciertas 4 o más a la primera, la superas entera y te llevas todos sus XP.\n\n¿Empezamos?')) return;
-  const items = sampleFrom(allPool(id), 5);
+  const items = sampleFrom(allPool(id), 5, id);
   A.runSession({
-    title: 'Examen de salto', color: color(id), items, intro: [], noRetry: true, passMin: 4,
+    title: 'Examen de salto', color: color(id), items, intro: [], noRetry: true, passMin: 4, useHearts: true,
     onDone: (res) => {
       if (!res.passed) return { note: 'Necesitabas 4 aciertos. No pasa nada: ¡sigue el camino paso a paso y vuelve a intentarlo cuando quieras!' };
       const m = A.ms(id), split = A.xpSplit(id); let xp = 0;
@@ -968,7 +1301,107 @@ A.startJump = function (id) {
 };
 A.startMix = function (id, onClose) {
   if (!needContent(id)) return;
-  A.runSession({ title: 'Práctica mixta', color: color(id), items: sampleFrom(allPool(id), 10), intro: [], onDone: () => ({ note: '📚 Modo biblioteca: practicas sin gastar ni ganar XP.' }), onClose });
+  A.runSession({ title: 'Práctica mixta', color: color(id), items: sampleFrom(allPool(id), 10, id), intro: [], practice: true, onDone: () => ({ note: '📚 Modo biblioteca: practicas sin gastar ni ganar XP.' }), onClose });
+};
+
+/* ---------- 🩺 BUZÓN DE FALLOS ---------- */
+A.startInboxReview = function () {
+  const inbox = A.metaSt().inbox;
+  if (!inbox.length) {
+    A.toast('🎉 ¡Buzón limpio!', 'No tienes ningún fallo pendiente de repasar. ¡Sigue avanzando en Aventura!');
+    return;
+  }
+  const slice = A.shuffle(inbox).slice(0, 8);
+  const items = slice.map(it => {
+    const p = prepare(it.ex, false, it.missionId);
+    p.inboxKey = it.key;
+    return p;
+  });
+  A.runSession({
+    title: 'Buzón de Fallos', color: '#f59e0b', items, intro: [],
+    onDone: (res) => {
+      const xp = res.ft * 5;
+      if (xp && window.app) window.app.addXP(xp);
+      A.recordQuest('sprints', 1, false);
+      return { xp, note: `🩺 Has limpiado ${res.ft} fallo${res.ft === 1 ? '' : 's'} de tu buzón.` };
+    },
+    onClose: () => A.renderScreen()
+  });
+};
+
+/* ---------- 📝 SIMULACRO DE EXAMEN (NOTA SOBRE 10) ---------- */
+A.startExamMission = function (id) {
+  if (!needContent(id)) return;
+  const items = sampleFrom(allPool(id), 10, id);
+  A.runSession({
+    title: 'Simulacro de Examen', color: color(id), items, intro: [],
+    noRetry: true, isExam: true, passMin: 5,
+    onClose: () => A.openLibMission(id)
+  });
+};
+A.openSubjectExamBuilder = function (subjectKey) {
+  const box = document.getElementById('adv-library'); if (!box) return;
+  const sub = A.subjectOf(subjectKey);
+  const list = A.missionsOf(subjectKey).filter(m => A.hasContent(m.id));
+  box.innerHTML = `
+    <button class="btn" style="padding:.5rem 1rem;font-size:.8rem;background:transparent;border:1px solid var(--glass-border);margin-bottom:1rem" onclick="Adv.sfx.tap();Adv.renderLibrary(document.getElementById('adv-library'))">⬅ Volver a ${sub.short}</button>
+    <div class="glass-card" style="--c:${sub.color}">
+      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem">
+        ${lumiSvg('idle', 64)}
+        <div>
+          <h2 style="margin:0">📝 Configurar Simulacro de Examen (${sub.short})</h2>
+          <p style="opacity:.8;font-size:.88rem">Marca los temas que entran en tu examen del colegio. Serán 10 preguntas sin pistas con nota final sobre 10.</p>
+        </div>
+      </div>
+      <div style="display:flex;gap:.5rem;margin-bottom:.8rem">
+        <button class="adv-chipbtn" style="font-size:.8rem;padding:.35rem .75rem" onclick="document.querySelectorAll('.adv-ex-chk').forEach(c=>c.checked=true)">Marcar todos</button>
+        <button class="adv-chipbtn" style="font-size:.8rem;padding:.35rem .75rem" onclick="document.querySelectorAll('.adv-ex-chk').forEach(c=>c.checked=false)">Desmarcar todos</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:.55rem;margin-bottom:1.2rem">
+        ${list.map((m, i) => `<label style="display:flex;align-items:center;gap:.6rem;background:rgba(255,255,255,.04);border:1px solid var(--glass-border);border-radius:12px;padding:.65rem .85rem;cursor:pointer;font-weight:600;font-size:.9rem"><input type="checkbox" class="adv-ex-chk" value="${m.id}" checked style="width:18px;height:18px;accent-color:${sub.color}"> <span>${i + 1}. ${m.title}</span></label>`).join('')}
+      </div>
+      <button class="adv-main" style="--c:${sub.color}" onclick="Adv.launchCustomExam('${subjectKey}')">🚀 Comenzar Examen (10 preguntas)</button>
+    </div>`;
+};
+A.launchCustomExam = function (subjectKey) {
+  const ids = [...document.querySelectorAll('.adv-ex-chk:checked')].map(c => Number(c.value));
+  if (!ids.length) { A.toast('⚠️ Elige al menos un tema', 'Marca una o más misiones para generar el examen.'); return; }
+  const pools = [];
+  ids.forEach(id => allPool(id).forEach(p => pools.push(p)));
+  const items = sampleFrom(pools, 10);
+  const sub = A.subjectOf(subjectKey);
+  A.runSession({
+    title: 'Examen de ' + sub.short, color: sub.color, items, intro: [],
+    noRetry: true, isExam: true, passMin: 5,
+    onClose: () => A.renderLibrary(document.getElementById('adv-library'))
+  });
+};
+
+/* ---------- ⚔️ DUELOS TEMÁTICOS ENTRE AMIGAS ---------- */
+A.startSubjectBattle = function (gameType, onScoreCallback) {
+  let pools = [], colorHex = '#ec4899', title = 'Duelo Temático';
+  const sub = A.SUBJECTS.find(s => s.code === gameType);
+  if (sub) {
+    title = 'Duelo de ' + sub.short;
+    colorHex = sub.color;
+    A.missionsOf(sub.key).forEach(m => allPool(m.id).forEach(p => pools.push(p)));
+  } else {
+    title = 'Duelo Trivial 6.º';
+    colorHex = '#8b5cf6';
+    A.meta.forEach(m => allPool(m.id).forEach(p => pools.push(p)));
+  }
+  const items = sampleFrom(pools, 8);
+  A.runSession({
+    title, color: colorHex, items, intro: [],
+    noRetry: true, isBattle: true, passMin: 0,
+    onDone: (res) => {
+      // Puntuación: cada acierto vale 10 puntos + bonus de rapidez (hasta 16 puntos extra)
+      const speedBonus = res.ft > 0 ? Math.max(0, Math.min(16, Math.round((90 - res.elapsedSec) / 5))) : 0;
+      const score = res.ft * 10 + speedBonus;
+      if (onScoreCallback) onScoreCallback(score);
+      return { xp: 25, note: `⚔️ Puntuación de batalla: ${score} pts (${res.ft}/8 aciertos en ${res.elapsedSec}s).` };
+    }
+  });
 };
 
 /* ---------- pantalla AVENTURA (el caminito) ---------- */
@@ -978,12 +1411,19 @@ A.renderScreen = function () {
   const box = document.getElementById('screen-aventura'); if (!box) return;
   if (!A.subject) A.subject = A.SUBJECTS[0].key;
   const sub = A.subjectOf(A.subject);
+  const h = A.hearts();
+  const inboxCount = A.metaSt().inbox.length;
   const tabs = A.SUBJECTS.map(s => {
     const ms = A.missionsOf(s.key), done = ms.filter(m => A.missionDone(m.id)).length;
     return `<div class="adv-tab ${s.key === A.subject ? 'on' : ''}" style="--c:${s.color}" onclick="Adv.sfx.tap();Adv.setSubject('${s.key}')">${s.icon} ${s.short}<small>${done}/${ms.length} misiones</small></div>`;
   }).join('');
   let html = `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.8rem">
     <div style="display:flex;align-items:center;gap:.9rem">${lumiSvg('idle')}<div><h1>🗺️ Aventura</h1><p style="opacity:.72;font-size:.9rem">Avanza misión a misión. ¿Ya te lo sabes? ¡Haz el ⚡ examen de salto!</p></div></div>
+    <div class="adv-topbar-tools">
+      <div class="adv-hearts-pill" title="Tus vidas en Aventura">${heartsHtml(h)} <span style="margin-left:.25rem">${h}/${A.MAX_HEARTS}</span></div>
+      <button class="adv-tool-btn recharge" onclick="Adv.sfx.tap();Adv.openHeartSprint(()=>Adv.renderScreen())">⚡ ${h < A.MAX_HEARTS ? 'Recargar Vidas' : 'Reto Cálculo 25s'}</button>
+      <button class="adv-tool-btn inbox" onclick="Adv.sfx.tap();Adv.startInboxReview()">🩺 Fallos (${inboxCount})</button>
+    </div>
   </div><div class="adv-tabs">${tabs}</div><div class="adv-path" style="--c:${sub.color}">`;
   const list = A.missionsOf(A.subject), offs = [0, 46, 0, -46];
   let curId = null;
@@ -1012,7 +1452,7 @@ A.clickNode = function (id, k) {
   k === 3 ? A.startBoss(id) : A.startStation(id, k);
 };
 
-/* ---------- BIBLIOTECA (todo el temario, sin candados) ---------- */
+/* ---------- BIBLIOTECA (todo el temario + Simulacro de Examen) ---------- */
 A.libSubject = null;
 A.renderLibrary = function (box) {
   if (!box) return;
@@ -1022,9 +1462,14 @@ A.renderLibrary = function (box) {
   const tabs = A.SUBJECTS.map(s => `<div class="adv-tab ${s.key === A.libSubject ? 'on' : ''}" style="--c:${s.color}" onclick="Adv.sfx.tap();Adv.setLibSubject('${s.key}')">${s.icon} ${s.short}</div>`).join('');
   const cards = A.missionsOf(A.libSubject).map((m, i) => {
     const has = A.hasContent(m.id), done = A.missionDone(m.id);
-    return `<div class="adv-libcard" style="--c:${sub.color};${has ? '' : 'opacity:.5'}" onclick="Adv.sfx.tap();Adv.openLibMission(${m.id})"><div class="n">${i + 1}</div><div><h4>${m.title} ${done ? '✅' : ''}</h4><small>${has ? 'Repasa y practica en el orden que quieras' : '🚧 Contenido en preparación'}</small></div></div>`;
+    return `<div class="adv-libcard" style="--c:${sub.color};${has ? '' : 'opacity:.5'}" onclick="Adv.sfx.tap();Adv.openLibMission(${m.id})"><div class="n">${i + 1}</div><div><h4>${m.title} ${done ? '✅' : ''}</h4><small>${has ? 'Resumen de teoría, práctica libre y simulacro de examen' : '🚧 Contenido en preparación'}</small></div></div>`;
   }).join('');
-  box.innerHTML = `<div class="adv-tabs" style="position:static">${tabs}</div><div class="adv-liblist">${cards}</div>`;
+  box.innerHTML = `<div class="adv-tabs" style="position:static">${tabs}</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.8rem;margin:.6rem 0 1rem;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.3);border-radius:18px;padding:.9rem 1.2rem">
+      <div><b style="color:#38bdf8">📝 ¿Tienes examen de ${sub.short} en el cole?</b><div style="font-size:.82rem;opacity:.8">Elige qué temas entran y haz un simulacro real de 10 preguntas con nota sobre 10.</div></div>
+      <button class="adv-tool-btn exam" onclick="Adv.sfx.tap();Adv.openSubjectExamBuilder('${sub.key}')">📝 Preparar Simulacro de ${sub.short}</button>
+    </div>
+    <div class="adv-liblist">${cards}</div>`;
 };
 A.setLibSubject = function (key) { A.libSubject = key; A.renderLibrary(document.getElementById('adv-library')); };
 A.openLibMission = function (id) {
@@ -1032,10 +1477,13 @@ A.openLibMission = function (id) {
   const box = document.getElementById('adv-library'); if (!box) return;
   const m = A.getMeta(id), c = A.content[id], sub = A.subjectOf(m.subject);
   const sums = c.stations.map((s, k) => `<div class="adv-sum" style="--c:${sub.color}"><b class="t">${A.NODE_ICONS[k]} ${s.title}</b>${(s.intro || []).map(p => `<p style="margin:.4rem 0;line-height:1.6"><b>${p.h}.</b> ${p.p}</p>`).join('')}</div>`).join('');
-  box.innerHTML = `<button class="btn" style="padding:.5rem 1rem;font-size:.8rem;background:transparent;border:1px solid var(--glass-border);margin-bottom:1rem" onclick="Adv.sfx.tap();Adv.renderLibrary(document.getElementById('adv-library'))">⬅ Temario</button>
+  box.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.6rem;margin-bottom:1rem">
+      <button class="btn" style="padding:.5rem 1rem;font-size:.8rem;background:transparent;border:1px solid var(--glass-border)" onclick="Adv.sfx.tap();Adv.renderLibrary(document.getElementById('adv-library'))">⬅ Temario</button>
+      <button class="adv-tool-btn exam" onclick="Adv.sfx.tap();Adv.startExamMission(${id})">📝 Simulacro de Examen de este tema (Nota / 10)</button>
+    </div>
     <div class="glass-card" style="--c:${sub.color};margin-bottom:1rem"><div style="font-size:.75rem;font-weight:800;opacity:.7">${sub.icon} ${sub.short.toUpperCase()}</div><h2 style="margin:.2rem 0 .5rem">${m.title}</h2><p style="opacity:.8;line-height:1.55">${m.objective}</p></div>
     <h3 style="margin:1rem 0 .6rem">📝 Resumen para estudiar</h3>${sums}
-    <h3 style="margin:1.4rem 0 .6rem">🎮 Practicar (sin XP, sin candados)</h3>
+    <h3 style="margin:1.4rem 0 .6rem">🎮 Practicar (sin gastar vidas ni candados)</h3>
     <div style="display:grid;gap:.6rem;--c:${sub.color}">
       ${c.stations.map((s, k) => `<button class="adv-act" onclick="Adv.sfx.tap();Adv.libStation(${id},${k})">${A.NODE_ICONS[k]} Practicar: ${s.title}</button>`).join('')}
       <button class="adv-act" onclick="Adv.sfx.tap();Adv.libBoss(${id})">👑 Reto de Maestría</button>
@@ -1046,5 +1494,134 @@ A.openLibMission = function (id) {
 A.libStation = (id, k) => A.startStation(id, k, { practice: true, onClose: () => A.openLibMission(id) });
 A.libBoss = id => A.startBoss(id, { practice: true, onClose: () => A.openLibMission(id) });
 A.libMix = id => A.startMix(id, () => A.openLibMission(id));
+
+/* =========================================================
+   🎯 PANEL DE INICIO: CONTINUAR AVENTURA + 3 MISIONES DIARIAS
+   ========================================================= */
+A.findNextStep = function () {
+  for (const s of A.SUBJECTS) {
+    for (const m of A.missionsOf(s.key)) {
+      for (let k = 0; k < 4; k++) {
+        if (!A.nodeDone(m.id, k)) return { m, k, sub: s };
+      }
+    }
+  }
+  return { m: A.meta[0], k: 0, sub: A.SUBJECTS[0] };
+};
+
+A.renderHomeWidget = function () {
+  ensureCss();
+  const host = document.getElementById('home-adv-hub');
+  if (!host) return;
+  const nxt = A.findNextStep();
+  const stTitle = nxt.k === 3 ? 'Reto de Maestría 👑' : (A.hasContent(nxt.m.id) ? A.content[nxt.m.id].stations[nxt.k].title : 'Estación ' + (nxt.k + 1));
+  const q = A.metaSt().quests;
+  const qList = [
+    { icon: '🗺️', title: 'Completa 1 estación en Aventura', cur: Math.min(1, q.lessons || 0), max: 1 },
+    { icon: '🔥', title: 'Logra una racha de 5 aciertos seguidos', cur: Math.min(5, q.maxCombo || 0), max: 5 },
+    { icon: '⚡', title: 'Supera 1 Reto de Vidas o limpia tu Buzón de Fallos', cur: Math.min(1, q.sprints || 0), max: 1 }
+  ];
+  const allDone = qList.every(x => x.cur >= x.max);
+
+  host.innerHTML = `
+    <div class="dash-grid" style="margin-top:.5rem">
+      <div class="glass-card" style="background:linear-gradient(135deg,rgba(139,92,246,.22),rgba(236,72,153,.15));border:2px solid rgba(139,92,246,.45);display:flex;flex-direction:column;justify-content:space-between;gap:1rem">
+        <div style="display:flex;align-items:center;gap:1rem">
+          ${lumiSvg('happy', 76)}
+          <div>
+            <span class="adv-chip" style="background:rgba(0,0,0,.35);color:${nxt.sub.color}">${nxt.sub.icon} ${nxt.sub.short} · Misión ${nxt.m.mission.replace('Misión ','')}</span>
+            <h2 style="margin:.35rem 0 .2rem;font-size:1.45rem">${nxt.m.title}</h2>
+            <p style="opacity:.85;font-size:.9rem">Siguiente parada: <b>${stTitle}</b></p>
+          </div>
+        </div>
+        <div style="display:flex;gap:.6rem;flex-wrap:wrap">
+          <button class="adv-main" style="flex:1;--c:${nxt.sub.color};padding:.85rem" onclick="Adv.sfx.tap();Adv.resumeNext(${nxt.m.id},${nxt.k},'${nxt.sub.key}')">🚀 ¡Continuar Aventura!</button>
+          <button class="adv-tool-btn recharge" onclick="Adv.sfx.tap();Adv.openHeartSprint(()=>Adv.renderHomeWidget())">❤️ ${A.hearts()}/${A.MAX_HEARTS} · Recargar</button>
+        </div>
+      </div>
+
+      <div class="glass-card" style="padding:1.4rem">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem">
+          <h3 style="margin:0">🎯 Misiones Diarias</h3>
+          <span style="font-size:.78rem;opacity:.65">Premio: 🎁 Cofre +75 XP</span>
+        </div>
+        ${qList.map(it => {
+          const pct = Math.round((it.cur / it.max) * 100);
+          return `<div class="adv-quest-row">
+            <span style="font-size:1.5rem">${it.cur >= it.max ? '✅' : it.icon}</span>
+            <div style="flex:1">
+              <div style="display:flex;justify-content:space-between;font-size:.85rem;font-weight:700"><span>${it.title}</span><span style="color:#fbbf24">${it.cur}/${it.max}</span></div>
+              <div class="adv-quest-bar"><i style="width:${pct}%"></i></div>
+            </div>
+          </div>`;
+        }).join('')}
+        ${allDone && !q.chest ? `<button class="adv-main" style="margin-top:.5rem;background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#111" onclick="Adv.claimDailyChest()">🎁 ¡Abrir Cofre Diario (+75 XP y +1 🧊)!</button>` :
+          (q.chest ? `<div style="text-align:center;color:#34d399;font-weight:800;font-size:.88rem;margin-top:.5rem">🎉 ¡Cofre Diario de hoy completado y abierto!</div>` : '')}
+      </div>
+    </div>`;
+};
+A.resumeNext = function (id, k, subKey) {
+  A.subject = subKey;
+  const navEl = document.querySelector('[data-nav="aventura"]');
+  if (window.app) window.app.switchScreen('aventura', navEl);
+  setTimeout(() => A.clickNode(id, k), 120);
+};
+A.claimDailyChest = function () {
+  const q = A.metaSt().quests;
+  if (q.chest) return;
+  q.chest = true;
+  A.addHearts(A.MAX_HEARTS);
+  if (window.app) {
+    window.app.addXP(75);
+    if (window.app.cloudUser && (window.app.cloudUser.streak_shields || 0) < 3) {
+      window.app.cloudUser.streak_shields = (window.app.cloudUser.streak_shields || 0) + 1;
+      if (typeof sb !== 'undefined' && sb) sb.from('profiles').update({ streak_shields: window.app.cloudUser.streak_shields }).eq('id', window.app.cloudUser.id).then(() => {});
+      window.app.updateHeaderStreak();
+    }
+  }
+  A.saveProgress();
+  A.sfx.done();
+  A.confetti();
+  A.toast('🎁 ¡Cofre Diario Abierto!', 'Has ganado +75 XP, vidas al máximo y +1 🧊 Protector de Racha.');
+  A.renderHomeWidget();
+};
+
+/* =========================================================
+   🏅 ÁLBUM DE TROFEOS DE LAS 40 MISIONES (EN PROGRESO)
+   ========================================================= */
+A.renderTrophyAlbum = function () {
+  ensureCss();
+  const host = document.getElementById('stats-trophy-album');
+  if (!host) return;
+  const totalDone = A.meta.filter(m => A.missionDone(m.id)).length;
+  const totalStars = A.meta.reduce((acc, m) => acc + A.missionStars(m.id), 0);
+
+  let html = `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.8rem;margin-bottom:1rem">
+    <div><h2 style="margin:0">🏅 Álbum de Trofeos del Curso (6.º Primaria)</h2><p style="opacity:.7;font-size:.85rem">Conquista las 40 misiones oficiales en Aventura para iluminar todas tus insignias</p></div>
+    <div style="display:flex;gap:.6rem"><span class="adv-chip" style="font-size:.9rem;padding:.4rem .9rem;color:#fbbf24">🏆 ${totalDone} / 40 Misiones</span><span class="adv-chip" style="font-size:.9rem;padding:.4rem .9rem;color:#38bdf8">⭐ ${totalStars} / 480 Estrellas</span></div>
+  </div>`;
+
+  A.SUBJECTS.forEach(s => {
+    const ms = A.missionsOf(s.key);
+    const doneCount = ms.filter(m => A.missionDone(m.id)).length;
+    html += `<h4 style="margin:1.2rem 0 .4rem;color:${s.color}">${s.icon} ${s.key} (${doneCount}/${ms.length})</h4><div class="adv-trophy-grid">`;
+    ms.forEach((m, i) => {
+      const done = A.missionDone(m.id), st = A.missionStars(m.id);
+      html += `<div class="adv-trophy ${done ? 'won' : 'lock'}" onclick="Adv.sfx.tap();Adv.openLibFromTrophy('${s.key}',${m.id})">
+        <div style="font-size:1.9rem">${done ? '🏅' : '🔒'}</div>
+        <div style="font-weight:800;font-size:.85rem;margin:.25rem 0">${i + 1}. ${m.title}</div>
+        <div style="font-size:.75rem;color:#fbbf24">${done ? `⭐ ${st}/12` : `${A.missionProgress(m.id)}/4 nodos`}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+  host.innerHTML = html;
+};
+A.openLibFromTrophy = function (subKey, id) {
+  A.libSubject = subKey;
+  const navEl = document.querySelector('[data-nav="study"]');
+  if (window.app) window.app.switchScreen('study', navEl);
+  setTimeout(() => A.openLibMission(id), 80);
+};
 
 })();
