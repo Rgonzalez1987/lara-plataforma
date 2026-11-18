@@ -1270,7 +1270,7 @@
                         <div><h1>📚 Biblioteca</h1><p style="opacity:.65;font-size:.9rem">Todo el temario de 6.º, sin candados: estudia lo que quieras, en el orden que quieras.</p></div>
                     </div>
                     <div id="adv-library" style="margin-bottom:2rem;"></div>
-                    <h3 id="extra-missions-title" style="margin:1rem 0 .8rem;">✨ Misiones extra (creadas con IA por la familia)</h3>
+                    <h3 id="extra-missions-title" style="margin:1rem 0 .8rem;">✨ Misiones extra</h3>
                     <div id="mission-grid" class="mission-grid"></div>
                 </div>
                 <div id="study-player" style="display:none;">
@@ -1418,14 +1418,14 @@
                 <div class="glass-card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; padding:1.2rem 1.8rem;">
                     <div>
                         <h2 style="font-size:1.6rem; font-weight:800; color:white;">🛡️ Panel Familiar de <span id="papi-title-student-name" style="color:var(--primary);">Lara</span></h2>
-                        <p style="opacity:0.7; font-size:0.85rem;">Clave personal de IA, generador de misiones y progreso formativo</p>
+                        <p style="opacity:0.7; font-size:0.85rem;">Gestión de misiones y progreso formativo</p>
                     </div>
                     <button class="btn" style="padding:0.4rem 0.9rem; font-size:0.75rem; background:rgba(255,255,255,0.08);" onclick="app.lockPapi()">🔒 Salir del Modo Papi</button>
                 </div>
 
                 <!-- Pestañas Modo Papi -->
                 <div style="display:flex; gap:0.6rem; background:rgba(0,0,0,0.3); padding:0.3rem; border-radius:16px; width:fit-content;">
-                    <div class="segment active" id="tab-papi-ai" onclick="app.switchPapiTab('ai')">🔑 Clave IA & Misiones</div>
+                    <div class="segment active" id="tab-papi-ai" onclick="app.switchPapiTab('ai')">📚 Misiones</div>
                     <div class="segment" id="tab-papi-diagnosis" onclick="app.switchPapiTab('diagnosis')">📊 Diagnóstico & Fallos</div>
                 </div>
 
@@ -3024,36 +3024,10 @@
                 this.switchScreen('users'); 
                 document.getElementById('main-header').style.visibility='hidden'; 
                 document.getElementById('sidebar').style.display='none'; 
-                this.setAuthTab('login');
+                const lm = document.getElementById('login-msg'); if(lm) lm.style.display = 'none';
             },
 
             // --- GESTIÓN DE CUENTAS CLOUD (SUPABASE) ---
-            setAuthTab(tab) {
-                const tl = document.getElementById('tab-auth-login');
-                const tr = document.getElementById('tab-auth-register');
-                const fl = document.getElementById('form-auth-login');
-                const fr = document.getElementById('form-auth-register');
-                if(tl) tl.classList.toggle('active', tab === 'login');
-                if(tr) tr.classList.toggle('active', tab === 'register');
-                if(fl) fl.style.display = tab === 'login' ? 'block' : 'none';
-                if(fr) fr.style.display = tab === 'register' ? 'block' : 'none';
-                const lm = document.getElementById('login-msg'); if(lm) lm.style.display = 'none';
-                const rm = document.getElementById('reg-msg'); if(rm) rm.style.display = 'none';
-            },
-
-            pickAvatar(avatar, el) {
-                this.selectedAvatar = avatar;
-                document.querySelectorAll('.avatar-option').forEach(o => o.classList.remove('active'));
-                if(el) el.classList.add('active');
-            },
-
-            async handleRegister() {
-                const msg = document.getElementById('reg-msg');
-                msg.textContent = "El registro público está desactivado por seguridad. Pide a tu tutor o al administrador que cree tu cuenta.";
-                msg.style.color = "var(--warning)";
-                msg.style.display = 'block';
-            },
-
             async handleLogin() {
                 const username = document.getElementById('login-username').value.trim();
                 const password = document.getElementById('login-password').value.trim();
@@ -4831,9 +4805,7 @@
                     const mission = this.data.missions[n];
                     const mastery = this.curr.mastery[n] || 0; 
                     const medal = mastery >= 10 ? '🥇' : mastery >= 5 ? '🥈' : mastery >= 1 ? '🥉' : '';
-                    const aiBadge = mission.source === 'ai' ? '<span style="font-size:0.6rem; background:var(--primary); color:white; padding:2px 6px; border-radius:4px; margin-left:5px;">AI</span>' : '';
-                    
-                    c.innerHTML=`<h3>${n} ${aiBadge}</h3><p style="font-size:0.7rem;opacity:0.6;">${mission.subject}</p><span class="mastery-tag">${medal}</span>`;
+                    c.innerHTML=`<h3>${this.esc(n)}</h3><p style="font-size:0.7rem;opacity:0.6;">${this.esc(mission.subject)}</p><span class="mastery-tag">${medal}</span>`;
                     c.onclick=()=>this.startStudy(n); grid.appendChild(c);
                 });
             },
