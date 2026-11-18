@@ -198,6 +198,17 @@ A.saveProgress = function () {
     if (!('progress' in u) && !('metrics' in u)) return;
     const payload = A.buildCloudPayload();
     if (!payload) return;
+    if (window.LaraSec && typeof window.LaraSec.saveStudentProgress === 'function') {
+      u.progress = payload.progress;
+      u.metrics = payload.metrics;
+      window.LaraSec.saveStudentProgress(u.id, {
+        adv: payload.progress.adv,
+        adv_meta: payload.progress.advMeta,
+        fails: payload.progress.fails,
+        metrics: payload.metrics,
+      }).catch(() => {});
+      return;
+    }
     const upd = {};
     if ('progress' in u) { u.progress = payload.progress; upd.progress = payload.progress; }
     if ('metrics' in u) { u.metrics = payload.metrics; upd.metrics = payload.metrics; }

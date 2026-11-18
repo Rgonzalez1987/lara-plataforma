@@ -1,0 +1,24 @@
+{
+  "name": "lara-platform",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --open",
+    "build": "tsc --noEmit && vite build && node -e \"const fs=require('fs'); ['js','assets'].forEach(d=>fs.cpSync(d,'dist/'+d,{recursive:true}));\"",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "content:build": "node tools/build.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.0",
+    "chart.js": "^4.4.8",
+    "dompurify": "^3.2.4",
+    "lucide": "^0.475.0"
+  },
+  "devDependencies": {
+    "@types/dompurify": "^3.0.5",
+    "typescript": "^5.7.3",
+    "vite": "^6.1.0"
+  }
+}
