@@ -1087,16 +1087,23 @@
                 </div>
 
                 <p style="text-align:left; font-size:0.8rem; opacity:0.6; margin-bottom:0.5rem;">Elige la Operación:</p>
-                <div style="display:flex; gap:0.5rem; background:rgba(0,0,0,0.3); padding:0.4rem; border-radius:16px; margin-bottom:2rem;">
+                <div style="display:flex; gap:0.5rem; background:rgba(0,0,0,0.3); padding:0.4rem; border-radius:16px; margin-bottom:1.5rem; flex-wrap:wrap;">
                     <div class="segment active" data-cfg-o="+" onclick="app.setCfg('o','+')">➕ Sumas</div>
                     <div class="segment" data-cfg-o="-" onclick="app.setCfg('o','-')">➖ Restas</div>
                     <div class="segment" data-cfg-o="*" onclick="app.setCfg('o','*')">✖️ Mult</div>
                     <div class="segment" data-cfg-o="/" onclick="app.setCfg('o','/')">➗ Div</div>
                 </div>
 
+                <p style="text-align:left; font-size:0.8rem; opacity:0.6; margin-bottom:0.5rem;">Elige el Tipo de Teclado:</p>
+                <div style="display:flex; gap:0.5rem; background:rgba(0,0,0,0.3); padding:0.4rem; border-radius:16px; margin-bottom:2rem; flex-wrap:wrap;">
+                    <div class="segment active" data-cfg-i="pad" onclick="app.setCfg('i','pad')">📱 Numpad</div>
+                    <div class="segment" data-cfg-i="kb" onclick="app.setCfg('i','kb')">⌨️ Teclado</div>
+                    <div class="segment" data-cfg-i="ms" onclick="app.setCfg('i','ms')">🖱️ Opciones</div>
+                </div>
+
                 <div style="display:flex; gap:1rem;">
-                    <button class="btn" style="flex:1;" onclick="app.startMathGame()">🚀 ¡A jugar!</button>
-                    <button class="btn" style="flex:1; background:var(--glass-strong);" onclick="app.switchScreen('arcade')">Atrás</button>
+                    <button class="btn" style="flex:1; justify-content:center;" onclick="app.startMathGame()">🚀 Iniciar Partida</button>
+                    <button class="btn" style="flex:1; justify-content:center; background:var(--glass-strong);" onclick="app.switchScreen('arcade')">Atrás</button>
                 </div>
             </div>
 
@@ -1698,6 +1705,7 @@
     <script src="js/aventura/meta.js"></script>
     <script src="js/aventura/engine.js"></script>
     <script src="js/aventura/content.js"></script>
+    <script src="js/explora/extra_stories.js"></script>
     <script>
         // --- SONIDOS Y CONFETI ---
         const audio = window.audio || new (window.AudioContext || window.webkitAudioContext)();
@@ -2533,7 +2541,7 @@
                     if(inputBox) inputBox.style.display = 'none';
                     if(numpadEl) numpadEl.style.display = 'none';
                     if(choiceBox) choiceBox.style.display = 'grid';
-                    this.genChoices();
+                    if(this.cOp && this.cOp.ans !== undefined) this.genChoices();
                 }
             },
 
@@ -4113,7 +4121,7 @@
                 document.getElementById('arcade-menu').style.display = 'none';
                 if(type === 'math') {
                     document.getElementById('arcade-config-math').style.display = 'block';
-                    this.cfg = { m: 'time', o: ['+'] };
+                    this.cfg = { m: 'time', o: ['+'], i: this.input || 'pad' };
                     this.updateCfgUI();
                 } else {
                     this.mode = type;
@@ -4127,6 +4135,8 @@
                     } else {
                         this.cfg.o.push(v);
                     }
+                } else if(k === 'i') {
+                    this.cfg.i = v;
                 } else {
                     this.cfg.m = v;
                 }
@@ -4135,10 +4145,12 @@
             updateCfgUI() {
                 document.querySelectorAll('[data-cfg-m]').forEach(el => el.classList.toggle('active', el.dataset.cfgM === this.cfg.m));
                 document.querySelectorAll('[data-cfg-o]').forEach(el => el.classList.toggle('active', this.cfg.o.includes(el.dataset.cfgO)));
+                document.querySelectorAll('[data-cfg-i]').forEach(el => el.classList.toggle('active', el.dataset.cfgI === (this.cfg.i || 'pad')));
             },
             startMathGame() {
                 this.mode = this.cfg.m;
                 this.opTypes = this.cfg.o;
+                this.input = this.cfg.i || 'pad';
                 this.startArcade();
             },
             startArcade() {
@@ -4242,7 +4254,8 @@
                 const optsContainer = document.getElementById('ortografia-options');
                 optsContainer.innerHTML = '';
                 
-                this.currOrtografiaQ.o.forEach(opt => {
+                const options = [...this.currOrtografiaQ.o].sort(() => Math.random() - 0.5);
+                options.forEach(opt => {
                     const btn = document.createElement('button');
                     btn.className = 'choice-btn';
                     btn.textContent = opt;
@@ -4486,7 +4499,7 @@
                 // Activar estado de carga para el Canvas y la UI
                 this.loadingExplora = true;
                 
-                const studentName = this.data.active || "Lara";
+                const studentName = (this.cloudUser && this.cloudUser.username) || (this.curr && this.curr.name) || this.data.active || "Explorador/a";
                 
                 // 1. Calcular la edad del estudiante a partir de la fecha de nacimiento (birth)
                 let ageBracket = "middle"; // Default a middle (9-11 años)
@@ -4502,22 +4515,33 @@
                     else if (age >= 12) ageBracket = "teen";
                 }
                 
-                // 2. Obtener pool de misiones por edad
-                let pool = this.library[ageBracket] || this.library["middle"];
+                // 2. Obtener pool de misiones por edad + historias extra
+                const basePool = this.library[ageBracket] || this.library["middle"];
+                const extraMiddle = (window.EXPLORA_EXTRA_STORIES && window.EXPLORA_EXTRA_STORIES.middle) || [];
+                let pool = (ageBracket === "middle" || ageBracket === "teen") ? [...basePool, ...extraMiddle] : [...basePool];
                 
-                // 3. Filtrar por intereses del perfil si existen
+                // 3. Filtrar por intereses del perfil solo si quedan suficientes historias (>= 4)
                 if (this.curr && this.curr.interests && this.curr.interests.length > 0) {
                     const filtered = pool.filter(item => this.curr.interests.includes(item.interest));
-                    if (filtered.length > 0) pool = filtered;
+                    if (filtered.length >= 4) pool = filtered;
                 }
                 
-                // 4. Seleccionar una misión aleatoria del pool
-                const rawMission = pool[Math.floor(Math.random() * pool.length)];
+                // 4. Evitar repetir historias recientes en la misma sesión
+                if (!this._seenExploraIds) this._seenExploraIds = [];
+                let unseen = pool.filter(item => !this._seenExploraIds.includes(item.id));
+                if (unseen.length === 0) {
+                    this._seenExploraIds = [];
+                    unseen = pool;
+                }
                 
-                // 5. Clonar recursivamente para no mutar la base de datos de la biblioteca
+                // 5. Seleccionar una misión aleatoria del pool no visto
+                const rawMission = unseen[Math.floor(Math.random() * unseen.length)];
+                this._seenExploraIds.push(rawMission.id);
+                
+                // 6. Clonar recursivamente para no mutar la base de datos de la biblioteca
                 const mission = JSON.parse(JSON.stringify(rawMission));
                 
-                // 6. Inyección dinámica del nombre en título, historia y preguntas
+                // 7. Inyección dinámica del nombre en título, historia y preguntas
                 mission.title = mission.title.replaceAll("{{NAME}}", studentName);
                 mission.story = mission.story.replaceAll("{{NAME}}", studentName);
                 mission.questions.forEach(q => {
@@ -4525,11 +4549,9 @@
                     q.o = q.o.map(opt => opt.replaceAll("{{NAME}}", studentName));
                 });
                 
-                // La imagen ya viene referenciada estáticamente en mission.image (assets/explora/...)
-                
                 this.currExplora = mission;
                 
-                // 7. Transición cosmética ultrarrápida (máx 800ms) en la pantalla de carga Glassmorphic
+                // 8. Transición cosmética ultrarrápida (máx 800ms) en la pantalla de carga Glassmorphic
                 document.getElementById('explora-loading-text').textContent = `Cargando aventura de ${mission.interest} para ${studentName}...`;
                 document.getElementById('explora-loading').style.display = 'block';
                 document.getElementById('explora-content').style.display = 'none';
@@ -4539,7 +4561,17 @@
                     
                     document.getElementById('explora-title').textContent = this.currExplora.title;
                     document.getElementById('explora-text').textContent = this.currExplora.story;
-                    document.getElementById('explora-img').src = this.currExplora.image; // Carga instantánea de imagen
+                    const imgEl = document.getElementById('explora-img');
+                    const fbEl = document.getElementById('explora-img-fallback');
+                    if (this.currExplora.image) {
+                        imgEl.style.opacity = 0;
+                        fbEl.style.opacity = 1;
+                        imgEl.src = this.currExplora.image;
+                    } else {
+                        imgEl.removeAttribute('src');
+                        imgEl.style.opacity = 0;
+                        fbEl.style.opacity = 1;
+                    }
                     
                     document.getElementById('explora-loading').style.display = 'none';
                     document.getElementById('explora-content').style.display = 'block';
