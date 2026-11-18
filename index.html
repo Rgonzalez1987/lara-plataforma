@@ -1442,41 +1442,10 @@
                 <!-- Subsección 1: IA y Misiones para su hija -->
                 <div id="papi-sub-ai" style="display:flex; flex-direction:column; gap:1.5rem;">
                     <!-- Clave de Gemini -->
-                    <div class="glass-card">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-                            <h3>🔑 Clave Personal de Google Gemini (IA)</h3>
-                            <div id="papi-ai-status-dot" style="width:12px; height:12px; border-radius:50%; background:var(--error); box-shadow:0 0 10px var(--error);"></div>
-                        </div>
-                        <div style="background:rgba(139,92,246,0.1); border:1px solid rgba(139,92,246,0.3); padding:0.9rem; border-radius:14px; margin-bottom:1.2rem; font-size:0.85rem; line-height:1.5;">
-                            🛡️ <strong>Privada y Gratuita:</strong> Tu clave solo se guarda en este dispositivo para el perfil de tu hija. No se comparte con otros alumnos ni consume saldo de otras familias.
-                        </div>
-                        <div style="margin-bottom: 1rem;">
-                            <label style="font-size: 0.8rem; opacity: 0.6;">Tu API Key de Google Gemini</label>
-                            <input type="password" id="papi-api-key" class="admin-input" placeholder="AIzaSy...">
-                            <div style="display:flex; gap:0.5rem; margin-top:0.8rem;">
-                                <button class="btn" style="flex:1; font-size: 0.85rem; padding: 0.6rem;" onclick="app.savePapiApiKey()">💾 Guardar Clave</button>
-                                <button class="btn" style="flex:1; font-size: 0.85rem; padding: 0.6rem; background:var(--accent);" onclick="app.testPapiApiKey()">🔍 Probar Conexión</button>
-                            </div>
-                            <p id="papi-api-test-result" style="font-size:0.8rem; margin-top:0.8rem; font-weight:700;"></p>
-                        </div>
-                    </div>
-
-                    <!-- Generador de Misiones -->
-                    <div class="glass-card">
-                        <h3>✨ Generador de Misiones para tu Hija</h3>
-                        <p style="opacity:0.7; font-size:0.85rem; margin-bottom:1rem;">Crea aventuras educativas guiadas paso a paso con preguntas interactivas:</p>
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin:1rem 0;">
-                            <div><label>Asignatura</label><select id="papi-ai-subject" class="admin-input"><option>Matemáticas</option><option>Lengua</option><option>Sociales</option><option>Inglés</option></select></div>
-                            <div><label>Curso</label><select id="papi-ai-grade" class="admin-input"><option>1º Primaria</option><option>2º Primaria</option><option>3º Primaria</option><option>4º Primaria</option><option>5º Primaria</option><option>6º Primaria</option></select></div>
-                        </div>
-                        <input type="text" id="papi-ai-topic" class="admin-input" placeholder="Tema (Ej: Las fracciones, Los ecosistemas, El relieve...)">
-                        <button class="btn" style="width:100%; margin-top:1.5rem;" onclick="app.generateMissionFromPapi()">🚀 Generar Misión</button>
-                        <div id="papi-ai-debug-log" style="margin-top: 1rem; font-size: 0.7rem; font-family: monospace; color: #00ff00; background: rgba(0,0,0,0.8); padding: 0.8rem; border-radius: 12px; display:none; border: 1px solid var(--primary);"></div>
-                    </div>
-
                     <!-- Lista de Misiones de la Alumna -->
                     <div class="glass-card">
                         <h3>📚 Misiones Creadas para esta Alumna</h3>
+                        <p style="opacity:0.7; font-size:0.85rem; margin-top:0.35rem;">Las misiones nuevas se crean y validan offline con <code>content_src/</code> + <code>node tools/build.js</code>.</p>
                         <div id="papi-missions-list" style="display:flex; flex-direction:column; gap:0.5rem; margin-top:1rem;"></div>
                     </div>
                 </div>
@@ -1577,17 +1546,8 @@
             <!-- 3. CATÁLOGO GLOBAL DE MISIONES -->
             <div id="super-sub-missions" style="display:none; flex-direction:column; gap:1.5rem;">
                 <div class="glass-card">
-                    <h3>Generador de Misiones Globales</h3>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin:1rem 0;">
-                        <div><label>Asignatura</label><select id="super-ai-subject" class="admin-input"><option>Matemáticas</option><option>Lengua</option><option>Sociales</option><option>Inglés</option></select></div>
-                        <div><label>Curso</label><select id="super-ai-grade" class="admin-input"><option>1º Primaria</option><option>2º Primaria</option><option>3º Primaria</option><option>4º Primaria</option><option>5º Primaria</option><option>6º Primaria</option></select></div>
-                    </div>
-                    <input type="text" id="super-ai-topic" class="admin-input" placeholder="Tema (Ej: Fracciones, El sistema solar...)">
-                    <button class="btn" style="width:100%; margin-top:1.5rem;" onclick="app.generateMissionFromSuper()">✨ Generar Misión</button>
-                    <div id="super-ai-debug-log" style="margin-top: 1rem; font-size: 0.7rem; font-family: monospace; color: #00ff00; background: rgba(0,0,0,0.8); padding: 0.8rem; border-radius: 12px; display:none; border: 1px solid var(--primary);"></div>
-                </div>
-                <div class="glass-card">
                     <h3>Misiones Disponibles en la Plataforma</h3>
+                    <p style="opacity:0.7; font-size:0.85rem; margin-top:0.35rem;">Las misiones oficiales se editan y compilan offline desde <code>content_src/</code> con <code>node tools/build.js</code>.</p>
                     <div id="super-missions-list" style="display:flex; flex-direction:column; gap:0.5rem; margin-top:1rem;"></div>
                 </div>
             </div>
@@ -2195,7 +2155,7 @@
         window.addEventListener('DOMContentLoaded', () => { sb = window.sb || null; });
 
         const app = {
-            data: JSON.parse(localStorage.getItem('lara_excellence_v10') || '{"users":{},"active":null,"missions":{},"settings":{"apiKey":""}}'),
+            data: JSON.parse(localStorage.getItem('lara_excellence_v10') || '{"users":{},"active":null,"missions":{},"settings":{}}'),
             selectedAvatar: '⚡',
             cloudUser: JSON.parse(localStorage.getItem('lara_cloud_session') || 'null'),
             activeChallenge: null,
@@ -2399,13 +2359,26 @@
             },
 
 
+            cleanupLegacyAiKeys() {
+                try {
+                    const keysToRemove = [];
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const k = localStorage.key(i);
+                        if (k && k.startsWith('lara_ai_key_')) keysToRemove.push(k);
+                    }
+                    keysToRemove.forEach((k) => localStorage.removeItem(k));
+                    if (this.data && this.data.settings && 'apiKey' in this.data.settings) {
+                        this.data.settings.apiKey = '';
+                        this.save();
+                    }
+                } catch {}
+            },
+
             async init() {
                 window.app = this;
+                this.cleanupLegacyAiKeys();
                 lucide.createIcons();
                 document.getElementById('arcade-input').onkeypress = (e) => { if(e.key==='Enter') this.checkArcade(); };
-                const savedKey = this.getApiKey();
-                const keyInput = document.getElementById('admin-api-key');
-                if(savedKey && keyInput) keyInput.value = savedKey;
 
                 if (this.cloudUser && this.cloudUser.id) {
                     await this.syncAndLoadCloudUser(this.cloudUser.id);
@@ -2415,76 +2388,6 @@
                     this.showUserSelection();
                 }
                 console.log("Lara Engine Initialized with Supabase & Duolingo features");
-            },
-
-            // --- CLAVE IA PERSONAL (POR FAMILIA/CUENTA) ---
-            getApiKey() {
-                const userKey = this.cloudUser ? localStorage.getItem('lara_ai_key_' + this.cloudUser.username) : null;
-                return userKey || this.data.settings.apiKey || '';
-            },
-
-            saveApiKey() {
-                const key = document.getElementById('admin-api-key').value.trim();
-                if(this.cloudUser) {
-                    localStorage.setItem('lara_ai_key_' + this.cloudUser.username, key);
-                }
-                this.data.settings.apiKey = key;
-                this.save();
-                this.notify("🔑 Clave Personal Guardada", "Esta clave solo se usará en este dispositivo para tu familia.");
-                this.updateAiStatus(false);
-            },
-
-            async testApiKey() {
-                const key = this.getApiKey();
-                const resText = document.getElementById('api-test-result');
-                if(!key) { resText.textContent = "❌ No hay clave guardada."; return; }
-                
-                resText.textContent = "⏳ Verificando conexión con Gemini...";
-                const models = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-3.1-flash-lite", "gemini-pro-latest"];
-                let lastError = "";
-                let success = false;
-                
-                for (const model of models) {
-                    try {
-                        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, { 
-                            method: "POST", 
-                            headers: { "Content-Type": "application/json" }, 
-                            body: JSON.stringify({ contents: [{ parts: [{ text: "Di 'OK'" }] }] }) 
-                        });
-                        const d = await res.json();
-                        if(d.candidates) {
-                            resText.textContent = `✅ ¡Clave válida y conectada! (Modelo: ${model})`;
-                            this.updateAiStatus(true);
-                            success = true;
-                            break;
-                        } else if(d.error) {
-                            lastError = `${d.error.message} (Código: ${d.error.status})`;
-                        }
-                    } catch(e) {
-                        lastError = "Error de conexión o red.";
-                    }
-                }
-                
-                if(!success) {
-                    resText.textContent = `❌ Error: ${lastError}`;
-                    this.updateAiStatus(false);
-                }
-            },
-
-            async listModels() {
-                const key = this.getApiKey();
-                const log = document.getElementById('ai-debug-log');
-                if(!key) { this.notify("🔑 Sin Clave", "Primero introduce tu clave personal de Gemini."); return; }
-                log.style.display = 'block'; log.textContent = "> Consultando modelos disponibles...";
-                try {
-                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
-                    const d = await res.json();
-                    if(d.models) {
-                        log.textContent = "> Modelos disponibles para tu clave:\n" + d.models.map(m => m.name.replace('models/','')).join(', ');
-                    } else {
-                        log.textContent = "> Error al listar: " + JSON.stringify(d);
-                    }
-                } catch(e) { log.textContent = "> Error de conexión: " + e.message; }
             },
 
             // --- ENTRADA TÁCTIL (NUMPAD) Y TECLADO ---
@@ -2540,10 +2443,6 @@
                 const studentName = this.cloudUser ? this.cloudUser.username : (this.data.active || 'tu hija');
                 const sn = document.getElementById('papi-student-name'); if(sn) sn.textContent = studentName;
                 const tsn = document.getElementById('papi-title-student-name'); if(tsn) tsn.textContent = studentName;
-                const subGr = document.getElementById('papi-ai-grade');
-                if(subGr && this.curr && this.curr.grade) subGr.value = this.curr.grade;
-                const keyInput = document.getElementById('papi-api-key');
-                if(keyInput) keyInput.value = this.getPapiApiKey();
             },
 
             checkPapiPin() {
@@ -2590,60 +2489,6 @@
                 }
             },
 
-            getPapiApiKey() {
-                if(!this.cloudUser) return this.data.settings.apiKey || '';
-                return localStorage.getItem('lara_ai_key_' + this.cloudUser.username) || this.data.settings.apiKey || '';
-            },
-
-            savePapiApiKey() {
-                const key = document.getElementById('papi-api-key').value.trim();
-                if(this.cloudUser) {
-                    localStorage.setItem('lara_ai_key_' + this.cloudUser.username, key);
-                }
-                this.data.settings.apiKey = key;
-                this.save();
-                this.notify("🔑 Clave Guardada", "Clave de Gemini guardada para el perfil de " + (this.cloudUser ? this.cloudUser.username : 'esta alumna'));
-            },
-
-            async testPapiApiKey() {
-                const key = this.getPapiApiKey();
-                const resText = document.getElementById('papi-api-test-result');
-                const dot = document.getElementById('papi-ai-status-dot');
-                if(!key) {
-                    if(resText) { resText.textContent = "❌ No hay clave guardada."; resText.style.color = "var(--error)"; }
-                    return;
-                }
-                if(resText) { resText.textContent = "⏳ Verificando con Google Gemini..."; resText.style.color = "var(--primary)"; }
-                const models = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-3.1-flash-lite", "gemini-pro-latest"];
-                let success = false;
-                let lastErr = "";
-                for(const model of models) {
-                    try {
-                        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ contents: [{ parts: [{ text: "Di 'OK'" }] }] })
-                        });
-                        const d = await res.json();
-                        if(d.candidates) {
-                            if(resText) { resText.textContent = `✅ ¡Conexión exitosa con Gemini! (Modelo: ${model})`; resText.style.color = "var(--success)"; }
-                            if(dot) { dot.style.background = 'var(--success)'; dot.style.boxShadow = '0 0 10px var(--success)'; }
-                            success = true;
-                            break;
-                        } else if(d.error) {
-                            lastErr = d.error.message;
-                        }
-                    } catch(e) {
-                        lastErr = "Error de red o conexión.";
-                    }
-                }
-                if(!success && resText) {
-                    resText.textContent = `❌ Error: ${lastErr}`;
-                    resText.style.color = "var(--error)";
-                    if(dot) { dot.style.background = 'var(--error)'; dot.style.boxShadow = '0 0 10px var(--error)'; }
-                }
-            },
-
             renderPapiFails() {
                 const list = document.getElementById('papi-fails-list');
                 if(!list) return;
@@ -2684,24 +2529,6 @@
                 });
             },
 
-            async generateMissionFromPapi() {
-                const sub = document.getElementById('papi-ai-subject').value;
-                const gr = document.getElementById('papi-ai-grade').value;
-                const top = document.getElementById('papi-ai-topic').value.trim();
-                const log = document.getElementById('papi-ai-debug-log');
-                if(!top) { this.notify("⚠️ Falta el tema", "Escribe el tema de la misión."); return; }
-                await this.executeMissionGeneration(sub, gr, top, log, () => this.renderPapiMissions());
-            },
-
-            async generateMissionFromSuper() {
-                const sub = document.getElementById('super-ai-subject').value;
-                const gr = document.getElementById('super-ai-grade').value;
-                const top = document.getElementById('super-ai-topic').value.trim();
-                const log = document.getElementById('super-ai-debug-log');
-                if(!top) { this.notify("⚠️ Falta el tema", "Escribe el tema de la misión."); return; }
-                await this.executeMissionGeneration(sub, gr, top, log, () => this.renderSuperMissions());
-            },
-
             renderSuperMissions() {
                 const ml = document.getElementById('super-missions-list');
                 if(!ml) return;
@@ -2718,95 +2545,6 @@
                     <button class="btn" style="background:var(--error); font-size:0.7rem; padding:0.4rem 0.8rem;" onclick="app.deleteMission('${n}')">Borrar</button>`;
                     ml.appendChild(d);
                 });
-            },
-
-            async executeMissionGeneration(sub, gr, t, log, onComplete) {
-                if(!t) return;
-                const key = this.getPapiApiKey();
-                if(!key) {
-                    this.notify("🛑 Clave Requerida", "Debes guardar tu clave de Google Gemini para generar misiones personalizadas.");
-                    return;
-                }
-                if(log) { log.style.display = 'block'; log.textContent = "> Iniciando generación con Gemini..."; }
-                this.notify("🤖 Procesando...", `Creando misión sobre ${t}`);
-                
-                let content = [];
-                let source = 'ai';
-                const studentName = this.data.active || 'Lara';
-                const studentGrade = gr || (this.curr ? this.curr.grade : '5º Primaria');
-
-                try {
-                    const prompt = `Actúa como un tutor personal experto, claro y motivador. 
-                    Tu alumno se llama ${studentName} y está en ${studentGrade}. 
-                    Crea una misión de aprendizaje sobre: "${t}" (${sub}).
-                    
-                    REGLAS DE TONO:
-                    - Dirígete a ${studentName} de forma directa y cercana.
-                    - El nivel de dificultad, vocabulario y conceptos deben ser PERFECTOS para un alumno de ${studentGrade}.
-                    - Usa un lenguaje EMOCIONANTE, CLARO y LLENO DE CURIOSIDADES.
-                    - Relaciona el contenido con MARAVILLAS DEL MUNDO, NATURALEZA, INVENTOS o HISTORIA REAL.
-                    
-                    Estructura JSON requerida:
-                    {
-                      "data": [
-                        { "type": "theory", "title": "¡Comienza la Exploración!", "content": "Una explicación fascinante...", "imageQuery": "english search term for realistic photo" },
-                        { "type": "quiz", "question": "¿...?", "options": ["A", "B", "C", "D"], "answer": "A" },
-                        { "type": "steps", "title": "Pasos", "steps": ["1", "2"] },
-                        { "type": "flashcard", "q": "...", "a": "..." },
-                        { "type": "fill_blank", "sentence": "La Tierra gira alrededor del [Sol].", "options": ["Sol", "Marte", "Luna"], "answer": "Sol" }
-                      ]
-                    }
-                    Reglas Técnicas:
-                    - Genera entre 8 y 10 elementos variados.
-                    - El tipo 'fill_blank' debe incluir una frase corta ('sentence') donde la palabra respuesta esté entre corchetes, ej: 'La capital de Francia es [París].'.
-                    - Devuelve SOLO el JSON puro.`;
-
-                    const models = ["gemini-flash-latest", "gemini-1.5-flash", "gemini-2.5-flash", "gemini-3.1-flash-lite", "gemini-2.0-flash"];
-                    let responseData = null;
-
-                    for (const model of models) {
-                        try {
-                            if(log) log.textContent += `\n> Intentando con ${model}...`;
-                            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, { 
-                                method: "POST", 
-                                headers: { "Content-Type": "application/json" }, 
-                                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) 
-                            });
-                            const d = await res.json();
-                            if (d.candidates && d.candidates[0]) {
-                                responseData = d;
-                                if(log) log.textContent += `\n> ✅ ${model} respondió con éxito.`;
-                                break;
-                            }
-                        } catch(err) {}
-                    }
-
-                    if (responseData) {
-                        let text = responseData.candidates[0].content.parts[0].text;
-                        const start = text.indexOf('{');
-                        const end = text.lastIndexOf('}');
-                        if (start !== -1 && end !== -1) {
-                            text = text.substring(start, end + 1).replace(/[\u0000-\u001F\u007F-\u009F]/g, ""); 
-                            const parsed = JSON.parse(text);
-                            if(parsed.data && Array.isArray(parsed.data)) {
-                                content = parsed.data;
-                            }
-                        }
-                    }
-                } catch(e) {
-                    if(log) log.textContent += `\n> ❌ Error: ${e.message}`;
-                }
-
-                if(content.length > 0) {
-                    this.data.missions[t] = { subject: sub, grade: gr, data: content, name: t, source: source }; 
-                    this.save();
-                    this.notify("✨ Misión Creada", t); 
-                    if(onComplete) onComplete();
-                    setTimeout(() => { if(log) log.style.display = 'none'; }, 3000);
-                } else {
-                    this.notify("❌ Error de Generación", "No se pudo generar la misión con la IA. Revisa tu Clave API o conexión.");
-                    setTimeout(() => { if(log) log.style.display = 'none'; }, 5000);
-                }
             },
 
             // --- SUPER-ADMINISTRADOR (BACKOFFICE CENTRAL DE LA PLATAFORMA) ---
@@ -5328,7 +5066,6 @@
                     d.appendChild(info); d.appendChild(delBtn);
                     ml.appendChild(d);
                 });
-                if(this.data.settings.apiKey) this.testApiKey();
             },
             deleteMission(n, bypass = false) { 
                 if(!n) return;
@@ -5355,131 +5092,6 @@
                 const okBtn = document.getElementById('confirm-ok-btn');
                 okBtn.onclick = () => { localStorage.clear(); location.reload(); };
                 this.modal('confirm', true);
-            },
-            async generateMission() {
-                this.notify("ℹ️ Desactivado por seguridad", "La generación de misiones con IA en navegador se ha desactivado; las misiones se crean desde content_src/.");
-                return;
-                const sub=document.getElementById('ai-subject').value, gr=document.getElementById('ai-grade').value, t=document.getElementById('ai-topic').value;
-                if(!t) return; 
-                
-                const key = this.getApiKey();
-                if(!key) {
-                    this.notify("🛑 Clave Requerida", "Cada familia debe introducir su clave gratuita de Google Gemini en el panel de Padres para generar misiones personalizadas con IA.");
-                    return;
-                }
-                
-                const log = document.getElementById('ai-debug-log');
-                log.style.display = 'block'; log.textContent = "> Iniciando generación...";
-                this.notify("🤖 Procesando...", `Creando misión sobre ${t}`);
-                
-                let content = [];
-                let source = 'ai';
-                
-                try {
-                    log.textContent += "\n> Llamando a Gemini API...";
-                    const prompt = `Actúa como un tutor personal experto, claro y motivador. 
-                    Tu alumno se llama ${this.data.active} y está en ${this.curr.grade || '5º Primaria'}. 
-                    Crea una misión de aprendizaje sobre: "${t}" (${sub}).
-                    
-                    REGLAS DE TONO:
-                    - Dirígete a ${this.data.active} de forma directa y cercana.
-                    - El nivel de dificultad, vocabulario y conceptos deben ser PERFECTOS para un alumno de ${this.curr.grade || '5º Primaria'}.
-                    - Usa un lenguaje EMOCIONANTE, CLARO y LLENO DE CURIOSIDADES.
-                    - No uses el tema de los videojuegos ni youtubers. 
-                    - Relaciona el contenido con MARAVILLAS DEL MUNDO, NATURALEZA, INVENTOS o HISTORIA REAL.
-                    - Haz que ${this.data.active} se sienta capaz de descubrir algo nuevo.
-                    
-                    Estructura JSON requerida:
-                    {
-                      "data": [
-                        { 
-                          "type": "theory", 
-                          "title": "¡Comienza la Exploración!", 
-                          "content": "Una explicación fascinante...", 
-                          "imageQuery": "término de búsqueda en inglés para una foto realista" 
-                        },
-                        { "type": "quiz", "question": "¿...?", "options": ["A", "B", "C", "D"], "answer": "A" },
-                        { "type": "steps", "title": "Pasos", "steps": ["1", "2"] },
-                        { "type": "flashcard", "q": "...", "a": "..." },
-                        { "type": "fill_blank", "sentence": "La Tierra gira alrededor del [Sol].", "options": ["Sol", "Marte", "Luna"], "answer": "Sol" }
-                      ]
-                    }
-                    Reglas Técnicas:
-                    - Genera exactamente entre 10 y 12 elementos variados para mantener una sesión de estudio ágil y enfocada de unos 5 minutos.
-                    - El tipo 'fill_blank' debe incluir una frase corta ('sentence') donde la palabra respuesta esté delimitada entre corchetes, por ejemplo 'La capital de Francia es [París].', y opciones ('options') que no incluyan corchetes.
-                    - El campo 'imageQuery' es OBLIGATORIO para las tarjetas de tipo 'theory'. Debe ser una descripción visual en inglés precisa y detallada (ej: 'A detailed map of Spain showing its provinces', 'The solar system with planets orbiting the sun') para que una IA genere la imagen perfecta.
-                    - Devuelve SOLO el JSON puro.`;
-                    
-                    const models = ["gemini-flash-latest", "gemini-1.5-flash", "gemini-2.5-flash", "gemini-3.1-flash-lite", "gemini-2.0-flash"];
-                    let responseData = null;
-
-                    for (const model of models) {
-                        try {
-                            log.textContent += `\n> Intentando con ${model}...`;
-                            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, { 
-                                method: "POST", 
-                                headers: { "Content-Type": "application/json" }, 
-                                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) 
-                            });
-                            const d = await res.json();
-                            if (d.candidates && d.candidates[0]) {
-                                responseData = d;
-                                log.textContent += `\n> ✅ ${model} respondió con éxito.`;
-                                break;
-                            } else if (d.error) {
-                                const msg = d.error.message || "";
-                                const code = d.error.code || res.status;
-                                log.textContent += `\n> ⚠️ ${model} error (${code}): ${msg}`;
-                                
-                                if(code === 429 || msg.includes("exhausted") || msg.includes("quota")) {
-                                    this.notify("🛑 Cuota Excedida", "Has alcanzado el límite de uso gratuito de Google. Espera un minuto o cambia de modelo.");
-                                    log.textContent += `\n> ❗ LÍMITE DE CUOTA DETECTADO.`;
-                                }
-                            }
-                        } catch(err) {
-                            log.textContent += `\n> ⚠️ Fallo de conexión con ${model}.`;
-                        }
-                    }
-
-                    if (responseData) {
-                        let text = responseData.candidates[0].content.parts[0].text;
-                        log.textContent += "\n> Procesando respuesta...";
-                        const start = text.indexOf('{');
-                        const end = text.lastIndexOf('}');
-                        if (start !== -1 && end !== -1) {
-                            try {
-                                text = text.substring(start, end + 1);
-                                text = text.replace(/[\u0000-\u001F\u007F-\u009F]/g, ""); 
-                                const parsed = JSON.parse(text);
-                                if(parsed.data && Array.isArray(parsed.data)) {
-                                    content = parsed.data;
-                                    source = 'ai';
-                                    log.textContent += `\n> ✨ ¡IA Generada! (${content.length} elementos)`;
-                                } else {
-                                    throw new Error("Estructura JSON inválida");
-                                }
-                            } catch(parseErr) {
-                                log.textContent += `\n> ❌ Error de formato en la respuesta de IA.`;
-                                console.error("Parse Error:", text);
-                            }
-                        }
-                    } else {
-                        log.textContent += "\n> ❌ Ningún modelo de IA pudo generar el contenido.";
-                    }
-                } catch(e) { 
-                    log.textContent += `\n> ❌ Error inesperado: ${e.message}`;
-                }
-
-                if(content.length > 0) {
-                    this.data.missions[t] = { subject: sub, grade: gr, data: content, name: t, source: source }; 
-                    this.save();
-                    this.notify("✨ Misión Creada", t); 
-                    this.renderAdmin();
-                    setTimeout(() => { log.style.display = 'none'; }, 3000);
-                } else {
-                    this.notify("❌ Error de Generación", "No se pudo generar la misión con la IA. Revisa tu Clave API o conexión.");
-                    setTimeout(() => { log.style.display = 'none'; }, 5000);
-                }
             },
             searchKnowledge(sub, topic) {
                 const tLow = topic.toLowerCase();
