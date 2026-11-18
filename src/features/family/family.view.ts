@@ -3,7 +3,6 @@ import { el } from '../../core/dom';
 import { sfx } from '../../core/sfx';
 import {
   adminCreateUser,
-  createChildAccount,
   getFamilyMembers,
   getStudentProgressForGuardian,
   setRecommendedMissions,
@@ -78,11 +77,7 @@ export function renderFamilyView(profile: Profile): HTMLElement {
               newFamilyName: familyNameInput.value.trim() || undefined,
             });
           } else {
-            await createChildAccount({
-              username: usernameInput.value.trim(),
-              password: passInput.value,
-              grade: gradeInput.value.trim(),
-            });
+            throw new Error('Solo el administrador puede crear cuentas.');
           }
 
           sfx.lvl();

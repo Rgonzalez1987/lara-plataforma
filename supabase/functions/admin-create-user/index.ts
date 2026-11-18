@@ -85,13 +85,25 @@ Deno.serve(async (req: Request) => {
 
     let resolvedFamilyId = body.familyId ?? null;
     if (!resolvedFamilyId && body.newFamilyName?.trim()) {
-      const { data: fam, error: famErr } = await admin
+      const famName = body.newFamilyName.trim();
+      const { data: existingFam } = await admin
         .from('families')
-        .insert({ name: body.newFamilyName.trim() })
         .select('id')
-        .single();
-      if (!famErr && fam) {
-        resolvedFamilyId = fam.id;
+        .ilike('name', famName)
+        .limit(1)
+        .maybeSingle();
+
+      if (existingFam) {
+        resolvedFamilyId = existingFam.id;
+      } else {
+        const { data: fam, error: famErr } = await admin
+          .from('families')
+          .insert({ name: famName })
+          .select('id')
+          .single();
+        if (!famErr && fam) {
+          resolvedFamilyId = fam.id;
+        }
       }
     }
 

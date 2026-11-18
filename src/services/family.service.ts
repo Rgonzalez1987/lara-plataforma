@@ -9,16 +9,13 @@ export interface FamilyMemberWithProfile {
   profile: Profile | null;
 }
 
-export interface CreateChildInput {
+export interface AdminCreateUserInput {
   familyId?: string;
   username: string;
   password: string;
   displayName?: string;
   grade?: string;
   avatar?: string;
-}
-
-export interface AdminCreateUserInput extends CreateChildInput {
   appRole: AppRole;
   newFamilyName?: string;
 }
@@ -67,12 +64,6 @@ export async function setRecommendedMissions(studentId: string, missionIds: numb
   if (error) {
     throw new Error(error.message);
   }
-}
-
-export async function createChildAccount(
-  input: CreateChildInput,
-): Promise<{ id: string; username: string; familyId: string }> {
-  return invokeEdgeFunction('family-create-child', { ...input });
 }
 
 export async function adminCreateUser(

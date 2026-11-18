@@ -1,6 +1,6 @@
 import { getSupabaseClient } from './core/supabase';
 import { getCurrentProfile, loginWithUsername, logout } from './services/auth.service';
-import { adminCreateUser, createChildAccount, getFamilyMembers, setRecommendedMissions } from './services/family.service';
+import { adminCreateUser, getFamilyMembers, setRecommendedMissions } from './services/family.service';
 import {
   awardXpFromSession,
   buyStreakShield,
@@ -25,7 +25,6 @@ const LaraSec = {
   createChallenge,
   submitChallengeScore,
   adminCreateUser,
-  createChildAccount,
   getFamilyMembers,
   setRecommendedMissions,
 };

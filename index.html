@@ -1601,27 +1601,6 @@
         </div>
     </main>
 
-    <div id="modal-new-user" class="modal">
-        <div class="glass-card" style="width:100%; max-width:400px; text-align:center;">
-            <h2 style="margin-bottom:1.5rem;">Nuevo Perfil</h2>
-            <input type="text" id="new-user-name" class="arcade-input" style="font-size:1.2rem; padding:0.8rem; margin-bottom:1rem;" placeholder="Nombre del alumno">
-            <input type="date" id="new-user-birth" class="arcade-input" style="font-size:1.2rem; padding:0.8rem; margin-bottom:1rem;">
-            <select id="new-user-grade" class="arcade-input" style="font-size:1.2rem; padding:0.8rem; margin-bottom:1.5rem;">
-                <option value="1º Primaria">1º Primaria</option>
-                <option value="2º Primaria">2º Primaria</option>
-                <option value="3º Primaria">3º Primaria</option>
-                <option value="4º Primaria">4º Primaria</option>
-                <option value="5º Primaria">5º Primaria</option>
-                <option value="6º Primaria">6º Primaria</option>
-                <option value="1º ESO">1º ESO</option>
-            </select>
-            <div style="display:flex; gap:1rem;">
-                <button class="btn" style="flex:1;" onclick="app.createUser()">Crear</button>
-                <button class="btn" style="flex:1; background:var(--error);" onclick="app.modal('new-user', false)">Cancelar</button>
-            </div>
-        </div>
-    </div>
-
     <script src="js/problemas_db.js"></script>
     <script src="js/aventura/meta.js"></script>
     <script src="js/aventura/engine.js"></script>
@@ -2779,14 +2758,17 @@
                 }
                 const grade = prompt("Curso (ej. 6º Primaria):", "6º Primaria") || "6º Primaria";
                 const appRole = confirm("¿Es una cuenta de TUTOR/PADRE? (Aceptar = Tutor, Cancelar = Alumno)") ? "guardian" : "student";
+                const familyName = prompt("Nombre de la familia (opcional, ej. Familia García; si ya existe se vincula a ella):", "") || "";
                 try {
-                    await window.LaraSec.adminCreateUser({
+                    const created = await window.LaraSec.adminCreateUser({
                         username: username.trim(),
                         password,
                         grade: grade.trim(),
                         appRole,
+                        newFamilyName: familyName.trim() || undefined,
                     });
-                    this.notify("✅ Usuario Creado", `Cuenta '${username.trim()}' (${appRole}) creada en Staging.`);
+                    const famNote = created.familyId ? " · vinculado a familia" : "";
+                    this.notify("✅ Usuario Creado", `Cuenta '${username.trim()}' (${appRole})${famNote} creada en Staging.`);
                     await this.loadAdminStudents();
                 } catch(e) {
                     this.notify("❌ Error", e.message || "No se pudo crear el usuario.");
