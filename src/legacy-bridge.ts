@@ -1,3 +1,4 @@
+import { escapeHtml, sanitizePedagogicalHtml } from './core/sanitize';
 import { getSupabaseClient } from './core/supabase';
 import { getCurrentProfile, loginWithUsername, logout } from './services/auth.service';
 import { adminCreateUser, getFamilyMembers, setRecommendedMissions } from './services/family.service';
@@ -33,8 +34,12 @@ declare global {
   interface Window {
     sb?: ReturnType<typeof getSupabaseClient>;
     LaraSec?: typeof LaraSec;
+    escapeHtml?: typeof escapeHtml;
+    sanitizePedagogicalHtml?: typeof sanitizePedagogicalHtml;
   }
 }
 
 window.sb = sb;
 window.LaraSec = LaraSec;
+window.escapeHtml = escapeHtml;
+window.sanitizePedagogicalHtml = sanitizePedagogicalHtml;

@@ -2474,8 +2474,8 @@
                 const recs = (this.cloudUser && Array.isArray(this.cloudUser.recommended_missions)) ? this.cloudUser.recommended_missions : [];
                 let recBlock = '';
                 if(window.Adv && this.cloudUser) {
-                    const opts = Adv.meta.map(m => `<option value="${m.id}">${Adv.subjectOf(m.subject).short} · ${m.title}</option>`).join('');
-                    const activeRecs = recs.length ? recs.map(r => `<span style="display:inline-flex;align-items:center;gap:0.4rem;background:rgba(236,72,153,0.2);border:1px solid #f472b6;padding:0.3rem 0.7rem;border-radius:99px;font-size:0.8rem;font-weight:700;">📌 ${r.title} <button onclick="app.removeRecommendedMission('${this.cloudUser.id}', ${r.id}, ()=>app.renderPapiFails())" style="background:none;border:none;color:#fca5a5;cursor:pointer;font-weight:900;">✕</button></span>`).join(' ') : '<span style="opacity:0.6;font-size:0.82rem;">Ninguno marcado todavía.</span>';
+                    const opts = Adv.meta.map(m => `<option value="${m.id}">${this.esc(Adv.subjectOf(m.subject).short)} · ${this.esc(m.title)}</option>`).join('');
+                    const activeRecs = recs.length ? recs.map(r => `<span style="display:inline-flex;align-items:center;gap:0.4rem;background:rgba(236,72,153,0.2);border:1px solid #f472b6;padding:0.3rem 0.7rem;border-radius:99px;font-size:0.8rem;font-weight:700;">📌 ${this.esc(r.title)} <button onclick="app.removeRecommendedMission('${this.esc(this.cloudUser.id)}', ${Number(r.id)}, ()=>app.renderPapiFails())" style="background:none;border:none;color:#fca5a5;cursor:pointer;font-weight:900;">✕</button></span>`).join(' ') : '<span style="opacity:0.6;font-size:0.82rem;">Ninguno marcado todavía.</span>';
                     recBlock = `
                         <div style="background:rgba(236,72,153,0.08);border:1px solid rgba(236,72,153,0.3);border-radius:16px;padding:1rem;margin-bottom:1.2rem;">
                             <div style="font-weight:800;color:#f472b6;margin-bottom:0.4rem;">📌 Marcar Examen de la Semana / Misión Recomendada</div>
@@ -2502,8 +2502,8 @@
                 missions.forEach(n => {
                     const d = document.createElement('div');
                     d.style = 'display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.05); padding:1rem; border-radius:16px; border:1px solid rgba(255,255,255,0.05);';
-                    d.innerHTML = `<div><strong style="display:block;">${n}</strong><small style="opacity:0.5;">${this.data.missions[n].subject || 'General'} · ${this.data.missions[n].grade || ''}</small></div>
-                    <button class="btn" style="background:var(--error); font-size:0.7rem; padding:0.4rem 0.8rem;" onclick="app.deleteMission('${n}')">Borrar</button>`;
+                    d.innerHTML = `<div><strong style="display:block;">${this.esc(n)}</strong><small style="opacity:0.5;">${this.esc(this.data.missions[n].subject || 'General')} · ${this.esc(this.data.missions[n].grade || '')}</small></div>
+                    <button class="btn" style="background:var(--error); font-size:0.7rem; padding:0.4rem 0.8rem;" onclick="app.deleteMission('${this.esc(n)}')">Borrar</button>`;
                     ml.appendChild(d);
                 });
             },
@@ -2520,8 +2520,8 @@
                 missions.forEach(n => {
                     const d = document.createElement('div');
                     d.style = 'display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.05); padding:1rem; border-radius:16px; border:1px solid rgba(255,255,255,0.05);';
-                    d.innerHTML = `<div><strong style="display:block;">${n}</strong><small style="opacity:0.5;">${this.data.missions[n].subject || 'General'} · ${this.data.missions[n].grade || ''}</small></div>
-                    <button class="btn" style="background:var(--error); font-size:0.7rem; padding:0.4rem 0.8rem;" onclick="app.deleteMission('${n}')">Borrar</button>`;
+                    d.innerHTML = `<div><strong style="display:block;">${this.esc(n)}</strong><small style="opacity:0.5;">${this.esc(this.data.missions[n].subject || 'General')} · ${this.esc(this.data.missions[n].grade || '')}</small></div>
+                    <button class="btn" style="background:var(--error); font-size:0.7rem; padding:0.4rem 0.8rem;" onclick="app.deleteMission('${this.esc(n)}')">Borrar</button>`;
                     ml.appendChild(d);
                 });
             },
@@ -2621,33 +2621,35 @@
                     if(kpiLeader) kpiLeader.textContent = leader ? `${leader.avatar || '👧'} ${leader.username} (${leader.xp} XP)` : '-';
 
                     select.innerHTML = '<option value="">-- Elige una alumna para supervisar --</option>' +
-                        students.map(s => `<option value="${s.id}">${s.avatar || '👧'} ${s.username} (${s.grade}) - ${s.xp} XP ${s.role === 'admin' ? '[ADMIN]' : ''}</option>`).join('');
+                        students.map(s => `<option value="${this.esc(s.id)}">${this.esc(s.avatar || '👧')} ${this.esc(s.username)} (${this.esc(s.grade)}) - ${Number(s.xp) || 0} XP ${(s.app_role || s.role) === 'admin' ? '[ADMIN]' : ''}</option>`).join('');
 
                     let html = '';
                     students.forEach(s => {
-                        const isAdminRow = s.role === 'admin' || s.username.toLowerCase() === 'admin';
+                        const isAdminRow = (s.app_role || s.role) === 'admin' || String(s.username || '').toLowerCase() === 'admin';
+                        const sid = this.esc(s.id);
+                        const uname = this.esc(s.username);
                         html += `
-                            <div class="social-user-row" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; padding:1rem;" onclick="document.getElementById('super-student-select').value='${s.id}'; app.renderAdminStudentDetail('${s.id}')">
+                            <div class="social-user-row" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; padding:1rem;" onclick="document.getElementById('super-student-select').value='${sid}'; app.renderAdminStudentDetail('${sid}')">
                                 <div style="display:flex; align-items:center; gap:1rem;">
-                                    <span style="font-size:2rem;">${s.avatar || '👧'}</span>
+                                    <span style="font-size:2rem;">${this.esc(s.avatar || '👧')}</span>
                                     <div>
                                         <div style="display:flex; align-items:center; gap:0.5rem;">
-                                            <span style="font-weight:700; font-size:1.05rem;">${s.username}</span>
+                                            <span style="font-weight:700; font-size:1.05rem;">${uname}</span>
                                             ${isAdminRow ? '<span style="background:rgba(236,72,153,0.2); color:#f472b6; font-size:0.7rem; padding:0.1rem 0.5rem; border-radius:6px; font-weight:700;">ADMIN</span>' : ''}
-                                            <span style="font-size:0.75rem; background:rgba(0,0,0,0.3); padding:0.1rem 0.45rem; border-radius:4px; opacity:0.75;">${String(s.password || '').startsWith('sha256:') ? '🔒 Cifrada' : '🔓 Pendiente cifrado'}</span>
+                                            <span style="font-size:0.75rem; background:rgba(0,0,0,0.3); padding:0.1rem 0.45rem; border-radius:4px; opacity:0.75;">🔒 Supabase Auth</span>
                                         </div>
-                                        <div style="font-size:0.8rem; opacity:0.6;">${s.grade} · Nivel ${s.level} · Actividad: ${s.last_active_date || 'Hoy'}</div>
+                                        <div style="font-size:0.8rem; opacity:0.6;">${this.esc(s.grade)} · Nivel ${Number(s.level) || 1} · Actividad: ${this.esc(s.last_active_date || 'Hoy')}</div>
                                     </div>
                                 </div>
                                 <div style="display:flex; align-items:center; gap:1.2rem; flex-wrap:wrap;">
-                                    <span style="color:#fbbf24; font-weight:800;">🔥 ${s.streak_count}d</span>
-                                    <span style="color:#38bdf8; font-weight:800;">🧊 ${s.streak_shields} esc.</span>
-                                    <span style="font-weight:800; font-size:1.1rem; color:white;">${s.xp} XP</span>
+                                    <span style="color:#fbbf24; font-weight:800;">🔥 ${Number(s.streak_count) || 0}d</span>
+                                    <span style="color:#38bdf8; font-weight:800;">🧊 ${Number(s.streak_shields) || 0} esc.</span>
+                                    <span style="font-weight:800; font-size:1.1rem; color:white;">${Number(s.xp) || 0} XP</span>
                                     <div style="display:flex; gap:0.4rem;">
-                                        <button class="btn" style="padding:0.3rem 0.7rem; font-size:0.75rem; background:rgba(255,255,255,0.08);" title="Cambiar Contraseña" onclick="event.stopPropagation(); app.adminUpdateStudentPassword('${s.id}', '${s.username}')">🔑</button>
-                                        <button class="btn" style="padding:0.3rem 0.7rem; font-size:0.75rem; background:rgba(255,255,255,0.08);" title="Editar XP" onclick="event.stopPropagation(); app.adminUpdateStudentXP('${s.id}', '${s.username}')">💎</button>
-                                        ${!isAdminRow ? `<button class="btn" style="padding:0.3rem 0.7rem; font-size:0.75rem; background:rgba(16,185,129,0.2); color:#34d399;" title="Supervisar" onclick="event.stopPropagation(); app.impersonateStudent('${s.username}')">👀</button>` : ''}
-                                        ${!isAdminRow ? `<button class="btn" style="padding:0.3rem 0.7rem; font-size:0.75rem; background:rgba(239,68,68,0.2); color:#fca5a5;" title="Eliminar" onclick="event.stopPropagation(); app.adminDeleteStudent('${s.id}', '${s.username}')">🗑️</button>` : ''}
+                                        <button class="btn" style="padding:0.3rem 0.7rem; font-size:0.75rem; background:rgba(255,255,255,0.08);" title="Cambiar Contraseña" onclick="event.stopPropagation(); app.adminUpdateStudentPassword('${sid}', '${uname}')">🔑</button>
+                                        <button class="btn" style="padding:0.3rem 0.7rem; font-size:0.75rem; background:rgba(255,255,255,0.08);" title="Editar XP" onclick="event.stopPropagation(); app.adminUpdateStudentXP('${sid}', '${uname}')">💎</button>
+                                        ${!isAdminRow ? `<button class="btn" style="padding:0.3rem 0.7rem; font-size:0.75rem; background:rgba(16,185,129,0.2); color:#34d399;" title="Supervisar" onclick="event.stopPropagation(); app.impersonateStudent('${uname}')">👀</button>` : ''}
+                                        ${!isAdminRow ? `<button class="btn" style="padding:0.3rem 0.7rem; font-size:0.75rem; background:rgba(239,68,68,0.2); color:#fca5a5;" title="Eliminar" onclick="event.stopPropagation(); app.adminDeleteStudent('${sid}', '${uname}')">🗑️</button>` : ''}
                                     </div>
                                 </div>
                             </div>
@@ -2661,7 +2663,7 @@
                         this.renderAdminStudentDetail(defaultStudent.id);
                     }
                 } catch(e) {
-                    listEl.innerHTML = `<p style="color:var(--error);">Error al cargar alumnas: ${e.message}</p>`;
+                    listEl.innerHTML = `<p style="color:var(--error);">Error al cargar alumnas: ${this.esc(e.message)}</p>`;
                 }
             },
 
@@ -2684,39 +2686,41 @@
                 const recs = Array.isArray(s.recommended_missions) ? s.recommended_missions : [];
                 let recBlock = '';
                 if(!isStudentAdmin && window.Adv) {
-                    const opts = Adv.meta.map(m => `<option value="${m.id}">${Adv.subjectOf(m.subject).short} · ${m.title}</option>`).join('');
-                    const activeRecs = recs.length ? recs.map(r => `<span style="display:inline-flex;align-items:center;gap:0.4rem;background:rgba(236,72,153,0.2);border:1px solid #f472b6;padding:0.3rem 0.7rem;border-radius:99px;font-size:0.8rem;font-weight:700;">📌 ${r.title} <button onclick="app.removeRecommendedMission('${s.id}', ${r.id}, ()=>app.loadAdminStudents())" style="background:none;border:none;color:#fca5a5;cursor:pointer;font-weight:900;">✕</button></span>`).join(' ') : '<span style="opacity:0.6;font-size:0.82rem;">Ninguna recomendada.</span>';
+                    const opts = Adv.meta.map(m => `<option value="${m.id}">${this.esc(Adv.subjectOf(m.subject).short)} · ${this.esc(m.title)}</option>`).join('');
+                    const activeRecs = recs.length ? recs.map(r => `<span style="display:inline-flex;align-items:center;gap:0.4rem;background:rgba(236,72,153,0.2);border:1px solid #f472b6;padding:0.3rem 0.7rem;border-radius:99px;font-size:0.8rem;font-weight:700;">📌 ${this.esc(r.title)} <button onclick="app.removeRecommendedMission('${this.esc(s.id)}', ${Number(r.id)}, ()=>app.loadAdminStudents())" style="background:none;border:none;color:#fca5a5;cursor:pointer;font-weight:900;">✕</button></span>`).join(' ') : '<span style="opacity:0.6;font-size:0.82rem;">Ninguna recomendada.</span>';
                     recBlock = `
                         <div style="background:rgba(236,72,153,0.08);border:1px solid rgba(236,72,153,0.3);border-radius:16px;padding:1rem;margin-bottom:1.2rem;">
-                            <div style="font-weight:800;color:#f472b6;margin-bottom:0.4rem;">📌 Examen de la Semana / Misión Recomendada para ${s.username}</div>
+                            <div style="font-weight:800;color:#f472b6;margin-bottom:0.4rem;">📌 Examen de la Semana / Misión Recomendada para ${this.esc(s.username)}</div>
                             <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.7rem;">
                                 <select id="super-rec-select" class="admin-input" style="flex:1;min-width:200px;margin:0;">${opts}</select>
-                                <button class="btn" style="padding:0.5rem 1rem;font-size:0.82rem;" onclick="app.assignRecommendedMission('${s.id}', document.getElementById('super-rec-select').value, 'Admin', ()=>app.loadAdminStudents())">+ Asignar</button>
+                                <button class="btn" style="padding:0.5rem 1rem;font-size:0.82rem;" onclick="app.assignRecommendedMission('${this.esc(s.id)}', document.getElementById('super-rec-select').value, 'Admin', ()=>app.loadAdminStudents())">+ Asignar</button>
                             </div>
                             <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">${activeRecs}</div>
                         </div>`;
                 }
 
+                const sidSafe = this.esc(s.id);
+                const unameSafe = this.esc(s.username);
                 card.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1.2rem; margin-bottom:1.5rem; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:1.5rem;">
                         <div style="display:flex; align-items:center; gap:1.2rem;">
-                            <span style="font-size:3.5rem;">${s.avatar || '👧'}</span>
+                            <span style="font-size:3.5rem;">${this.esc(s.avatar || '👧')}</span>
                             <div>
                                 <div style="display:flex; align-items:center; gap:0.6rem;">
-                                    <h2 style="font-size:1.8rem; font-weight:800; color:white; margin:0;">${s.username}</h2>
+                                    <h2 style="font-size:1.8rem; font-weight:800; color:white; margin:0;">${unameSafe}</h2>
                                     ${isStudentAdmin ? '<span style="background:linear-gradient(135deg,#ec4899,#8b5cf6); color:white; padding:0.2rem 0.6rem; border-radius:8px; font-size:0.75rem; font-weight:700;">ADMIN</span>' : ''}
                                 </div>
-                                <p style="opacity:0.7; font-size:0.9rem; margin-top:0.3rem;">${s.grade} · Nivel ${s.level} · Registrada: ${s.created_at ? new Date(s.created_at).toLocaleDateString() : 'Recientemente'}</p>
+                                <p style="opacity:0.7; font-size:0.9rem; margin-top:0.3rem;">${this.esc(s.grade)} · Nivel ${Number(s.level) || 1} · Registrada: ${s.created_at ? this.esc(new Date(s.created_at).toLocaleDateString()) : 'Recientemente'}</p>
                                 <div style="margin-top:0.5rem; font-size:0.85rem;">
-                                    🔐 Seguridad: <span style="font-weight:700; background:rgba(0,0,0,0.4); padding:0.2rem 0.6rem; border-radius:6px; color:${isHashed ? '#34d399' : '#fbbf24'};">${isHashed ? '🔒 Contraseña cifrada (SHA-256)' : '⚠️ Se cifrará automáticamente al iniciar sesión'}</span>
+                                    🔐 Seguridad: <span style="font-weight:700; background:rgba(0,0,0,0.4); padding:0.2rem 0.6rem; border-radius:6px; color:#34d399;">🔒 Supabase Auth</span>
                                 </div>
                             </div>
                         </div>
                         <div style="display:flex; flex-wrap:wrap; gap:0.6rem;">
-                            <button class="btn" style="padding:0.5rem 1rem; font-size:0.8rem; background:linear-gradient(135deg, #8b5cf6, #ec4899);" onclick="app.adminUpdateStudentPassword('${s.id}', '${s.username}')">🔑 Resetear Contraseña</button>
-                            <button class="btn" style="padding:0.5rem 1rem; font-size:0.8rem; background:linear-gradient(135deg, #f59e0b, #d97706);" onclick="app.adminUpdateStudentXP('${s.id}', '${s.username}')">💎 Modificar XP</button>
-                            ${!isStudentAdmin ? `<button class="btn" style="padding:0.5rem 1rem; font-size:0.8rem; background:linear-gradient(135deg, #10b981, #059669);" onclick="app.impersonateStudent('${s.username}')">👀 Ver como ${s.username}</button>` : ''}
-                            ${!isStudentAdmin ? `<button class="btn" style="padding:0.5rem 1rem; font-size:0.8rem; background:rgba(239,68,68,0.2); color:#fca5a5; border:1px solid rgba(239,68,68,0.4);" onclick="app.adminDeleteStudent('${s.id}', '${s.username}')">🗑️ Borrar</button>` : ''}
+                            <button class="btn" style="padding:0.5rem 1rem; font-size:0.8rem; background:linear-gradient(135deg, #8b5cf6, #ec4899);" onclick="app.adminUpdateStudentPassword('${sidSafe}', '${unameSafe}')">🔑 Resetear Contraseña</button>
+                            <button class="btn" style="padding:0.5rem 1rem; font-size:0.8rem; background:linear-gradient(135deg, #f59e0b, #d97706);" onclick="app.adminUpdateStudentXP('${sidSafe}', '${unameSafe}')">💎 Modificar XP</button>
+                            ${!isStudentAdmin ? `<button class="btn" style="padding:0.5rem 1rem; font-size:0.8rem; background:linear-gradient(135deg, #10b981, #059669);" onclick="app.impersonateStudent('${unameSafe}')">👀 Ver como ${unameSafe}</button>` : ''}
+                            ${!isStudentAdmin ? `<button class="btn" style="padding:0.5rem 1rem; font-size:0.8rem; background:rgba(239,68,68,0.2); color:#fca5a5; border:1px solid rgba(239,68,68,0.4);" onclick="app.adminDeleteStudent('${sidSafe}', '${unameSafe}')">🗑️ Borrar</button>` : ''}
                         </div>
                     </div>
 
@@ -2974,28 +2978,35 @@
                         const statusBadge = c.status === 'completed' 
                             ? `<span style="background:rgba(16,185,129,0.2); color:#34d399; padding:0.2rem 0.6rem; border-radius:8px; font-size:0.75rem; font-weight:700;">🏆 Finalizada</span>`
                             : `<span style="background:rgba(245,158,11,0.2); color:#fbbf24; padding:0.2rem 0.6rem; border-radius:8px; font-size:0.75rem; font-weight:700;">⏳ Pendiente</span>`;
-                        const winnerInfo = c.winner_username ? ` · Ganadora: <strong style="color:#34d399;">${c.winner_username}</strong>` : '';
+                        const winnerInfo = c.winner_username ? ` · Ganadora: <strong style="color:#34d399;">${this.esc(c.winner_username)}</strong>` : '';
+                        const senderSafe = this.esc(c.sender_username || c.challenger_id);
+                        const receiverSafe = this.esc(c.receiver_username || c.opponent_id);
                         html += `
                             <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:14px; padding:1rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.8rem;">
                                 <div>
                                     <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.3rem;">
-                                        <span style="font-weight:700; font-size:1rem;">⚔️ ${c.sender_username} vs ${c.receiver_username}</span>
+                                        <span style="font-weight:700; font-size:1rem;">⚔️ ${senderSafe} vs ${receiverSafe}</span>
                                         ${statusBadge}
                                     </div>
                                     <div style="font-size:0.85rem; opacity:0.7;">
-                                        Puntuación: <strong>${c.sender_username}</strong> (${c.sender_score || 0} pts) - <strong>${c.receiver_username}</strong> (${c.receiver_score || 0} pts)${winnerInfo}
+                                        Puntuación: <strong>${senderSafe}</strong> (${Number(c.sender_score ?? c.challenger_score) || 0} pts) - <strong>${receiverSafe}</strong> (${Number(c.receiver_score ?? c.opponent_score) || 0} pts)${winnerInfo}
                                     </div>
                                 </div>
                                 <div style="font-size:0.75rem; opacity:0.5;">
-                                    ${c.created_at ? new Date(c.created_at).toLocaleString() : ''}
+                                    ${c.created_at ? this.esc(new Date(c.created_at).toLocaleString()) : ''}
                                 </div>
                             </div>
                         `;
                     });
                     list.innerHTML = html;
                 } catch(e) {
-                    list.innerHTML = `<p style="color:var(--error);">Error al cargar batallas: ${e.message}</p>`;
+                    list.innerHTML = `<p style="color:var(--error);">Error al cargar batallas: ${this.esc(e.message)}</p>`;
                 }
+            },
+
+            esc(v) {
+                if (window.escapeHtml) return window.escapeHtml(v);
+                return String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
             },
 
             save() { localStorage.setItem('lara_excellence_v10', JSON.stringify(this.data)); },
@@ -3268,33 +3279,33 @@
                     if(p2) {
                         podiumHtml += `
                             <div class="podium-slot podium-2">
-                                <div style="font-size:2.2rem; margin-bottom:0.2rem;">${p2.avatar || '👧'}</div>
-                                <div style="font-weight:700; font-size:0.9rem; margin-bottom:0.3rem;">${p2.username}</div>
+                                <div style="font-size:2.2rem; margin-bottom:0.2rem;">${this.esc(p2.avatar || '👧')}</div>
+                                <div style="font-weight:700; font-size:0.9rem; margin-bottom:0.3rem;">${this.esc(p2.username)}</div>
                                 <div class="podium-box">
                                     <div style="font-size:1.4rem;">🥈</div>
-                                    <div style="font-size:0.85rem; color:#cbd5e1;">${p2.xp} XP</div>
+                                    <div style="font-size:0.85rem; color:#cbd5e1;">${Number(p2.xp) || 0} XP</div>
                                 </div>
                             </div>`;
                     }
                     if(p1) {
                         podiumHtml += `
                             <div class="podium-slot podium-1">
-                                <div style="font-size:2.8rem; margin-bottom:0.2rem;">${p1.avatar || '👑'}</div>
-                                <div style="font-weight:800; font-size:1rem; margin-bottom:0.3rem; color:#fbbf24;">${p1.username}</div>
+                                <div style="font-size:2.8rem; margin-bottom:0.2rem;">${this.esc(p1.avatar || '👑')}</div>
+                                <div style="font-weight:800; font-size:1rem; margin-bottom:0.3rem; color:#fbbf24;">${this.esc(p1.username)}</div>
                                 <div class="podium-box">
                                     <div style="font-size:1.8rem;">🥇</div>
-                                    <div style="font-size:1rem; color:#fbbf24;">${p1.xp} XP</div>
+                                    <div style="font-size:1rem; color:#fbbf24;">${Number(p1.xp) || 0} XP</div>
                                 </div>
                             </div>`;
                     }
                     if(p3) {
                         podiumHtml += `
                             <div class="podium-slot podium-3">
-                                <div style="font-size:2.2rem; margin-bottom:0.2rem;">${p3.avatar || '👧'}</div>
-                                <div style="font-weight:700; font-size:0.9rem; margin-bottom:0.3rem;">${p3.username}</div>
+                                <div style="font-size:2.2rem; margin-bottom:0.2rem;">${this.esc(p3.avatar || '👧')}</div>
+                                <div style="font-weight:700; font-size:0.9rem; margin-bottom:0.3rem;">${this.esc(p3.username)}</div>
                                 <div class="podium-box">
                                     <div style="font-size:1.3rem;">🥉</div>
-                                    <div style="font-size:0.85rem; color:#d97706;">${p3.xp} XP</div>
+                                    <div style="font-size:0.85rem; color:#d97706;">${Number(p3.xp) || 0} XP</div>
                                 </div>
                             </div>`;
                     }
@@ -3307,22 +3318,22 @@
                             <div class="social-user-row ${isMe ? 'is-me' : ''}">
                                 <div style="display:flex; align-items:center; gap:1rem;">
                                     <span style="font-weight:800; width:25px; opacity:0.6; text-align:center;">#${idx+1}</span>
-                                    <span style="font-size:1.6rem;">${u.avatar || '⚡'}</span>
+                                    <span style="font-size:1.6rem;">${this.esc(u.avatar || '⚡')}</span>
                                     <div>
-                                        <div style="font-weight:700; font-size:0.95rem;">${u.username} ${isMe ? '<small style="color:var(--primary); font-weight:800;">(Tú)</small>' : ''}</div>
-                                        <div style="font-size:0.75rem; opacity:0.6;">${u.grade || '4º Primaria'} · Nivel ${u.level || 1}</div>
+                                        <div style="font-weight:700; font-size:0.95rem;">${this.esc(u.username)} ${isMe ? '<small style="color:var(--primary); font-weight:800;">(Tú)</small>' : ''}</div>
+                                        <div style="font-size:0.75rem; opacity:0.6;">${this.esc(u.grade || '4º Primaria')} · Nivel ${Number(u.level) || 1}</div>
                                     </div>
                                 </div>
                                 <div style="display:flex; align-items:center; gap:1.2rem;">
-                                    <span style="font-size:0.85rem; font-weight:700; color:#fbbf24;">🔥 ${u.streak_count || 1}d</span>
-                                    <span style="font-weight:800; font-size:1rem; color:white;">${u.xp} XP</span>
+                                    <span style="font-size:0.85rem; font-weight:700; color:#fbbf24;">🔥 ${Number(u.streak_count) || 1}d</span>
+                                    <span style="font-weight:800; font-size:1rem; color:white;">${Number(u.xp) || 0} XP</span>
                                 </div>
                             </div>
                         `;
                     });
                     listEl.innerHTML = listHtml;
                 } catch(e) {
-                    podiumEl.innerHTML = `<p style="color:var(--error);">Error al cargar ranking: ${e.message}</p>`;
+                    podiumEl.innerHTML = `<p style="color:var(--error);">Error al cargar ranking: ${this.esc(e.message)}</p>`;
                 }
             },
 
@@ -3357,16 +3368,17 @@
                     let html = '';
                     users.forEach(u => {
                         const isFollowing = followedIds.has(u.id);
+                        const uid = this.esc(u.id);
                         html += `
                             <div class="social-user-row">
                                 <div style="display:flex; align-items:center; gap:1rem;">
-                                    <span style="font-size:1.8rem;">${u.avatar || '⚡'}</span>
+                                    <span style="font-size:1.8rem;">${this.esc(u.avatar || '⚡')}</span>
                                     <div>
-                                        <div style="font-weight:700;">${u.username}</div>
-                                        <div style="font-size:0.75rem; opacity:0.6;">${u.grade} · Nivel ${u.level} · 🔥 ${u.streak_count}d</div>
+                                        <div style="font-weight:700;">${this.esc(u.username)}</div>
+                                        <div style="font-size:0.75rem; opacity:0.6;">${this.esc(u.grade)} · Nivel ${Number(u.level) || 1} · 🔥 ${Number(u.streak_count) || 0}d</div>
                                     </div>
                                 </div>
-                                <button class="btn" style="padding:0.4rem 1rem; font-size:0.8rem; background:${isFollowing ? 'rgba(255,255,255,0.1)' : 'var(--primary)'};" onclick="app.toggleFollow('${u.id}', ${isFollowing})">
+                                <button class="btn" style="padding:0.4rem 1rem; font-size:0.8rem; background:${isFollowing ? 'rgba(255,255,255,0.1)' : 'var(--primary)'};" onclick="app.toggleFollow('${uid}', ${isFollowing})">
                                     ${isFollowing ? '✓ Siguiendo' : '+ Añadir Amiga'}
                                 </button>
                             </div>
@@ -3374,7 +3386,7 @@
                     });
                     resEl.innerHTML = html;
                 } catch(e) {
-                    resEl.innerHTML = `<p style="color:var(--error);">Error al buscar: ${e.message}</p>`;
+                    resEl.innerHTML = `<p style="color:var(--error);">Error al buscar: ${this.esc(e.message)}</p>`;
                 }
             },
 
@@ -3422,25 +3434,27 @@
 
                     let html = '';
                     this.friendsList.forEach(f => {
+                        const fid = this.esc(f.id);
+                        const fname = this.esc(f.username);
                         html += `
                             <div class="social-user-row">
                                 <div style="display:flex; align-items:center; gap:1rem;">
-                                    <span style="font-size:1.8rem;">${f.avatar || '⚡'}</span>
+                                    <span style="font-size:1.8rem;">${this.esc(f.avatar || '⚡')}</span>
                                     <div>
-                                        <div style="font-weight:700;">${f.username}</div>
-                                        <div style="font-size:0.75rem; opacity:0.6;">${f.grade} · Nivel ${f.level} · 🔥 ${f.streak_count}d racha</div>
+                                        <div style="font-weight:700;">${fname}</div>
+                                        <div style="font-size:0.75rem; opacity:0.6;">${this.esc(f.grade)} · Nivel ${Number(f.level) || 1} · 🔥 ${Number(f.streak_count) || 0}d racha</div>
                                     </div>
                                 </div>
                                 <div style="display:flex; gap:0.5rem;">
-                                    <button class="btn" style="padding:0.4rem 0.8rem; font-size:0.75rem; background:linear-gradient(135deg, #ec4899, #8b5cf6);" onclick="app.launchDirectChallenge('${f.id}', '${f.username}')">⚔️ Retar</button>
-                                    <button class="btn" style="padding:0.4rem 0.6rem; font-size:0.75rem; background:rgba(239,68,68,0.2); color:#fca5a5;" onclick="app.toggleFollow('${f.id}', true)">✕</button>
+                                    <button class="btn" style="padding:0.4rem 0.8rem; font-size:0.75rem; background:linear-gradient(135deg, #ec4899, #8b5cf6);" onclick="app.launchDirectChallenge('${fid}', '${fname}')">⚔️ Retar</button>
+                                    <button class="btn" style="padding:0.4rem 0.6rem; font-size:0.75rem; background:rgba(239,68,68,0.2); color:#fca5a5;" onclick="app.toggleFollow('${fid}', true)">✕</button>
                                 </div>
                             </div>
                         `;
                     });
                     listEl.innerHTML = html;
                 } catch(e) {
-                    listEl.innerHTML = `<p style="color:var(--error);">Error al cargar amigas: ${e.message}</p>`;
+                    listEl.innerHTML = `<p style="color:var(--error);">Error al cargar amigas: ${this.esc(e.message)}</p>`;
                 }
             },
 
@@ -3455,7 +3469,7 @@
                     return;
                 }
 
-                select.innerHTML = this.friendsList.map(f => `<option value="${f.id}">${f.avatar || '👧'} ${f.username} (${f.grade})</option>`).join('');
+                select.innerHTML = this.friendsList.map(f => `<option value="${this.esc(f.id)}">${this.esc(f.avatar || '👧')} ${this.esc(f.username)} (${this.esc(f.grade)})</option>`).join('');
                 this.modal('challenge', true);
             },
 
@@ -3577,16 +3591,20 @@
                             const isIncoming = c.opponent_id === this.cloudUser.id;
                             const gtLabel = this.gameTypeLabel(c.game_type);
                             if(isIncoming) {
+                                const cName = this.esc(c.challenger?.username || 'Amiga');
+                                const cid = this.esc(c.id);
+                                const chId = this.esc(c.challenger_id);
+                                const gtSafe = this.esc(c.game_type || 'math');
                                 html += `
                                     <div class="challenge-card">
                                         <div style="display:flex; align-items:center; gap:0.8rem;">
-                                            <span style="font-size:2rem;">${c.challenger?.avatar || '⚡'}</span>
+                                            <span style="font-size:2rem;">${this.esc(c.challenger?.avatar || '⚡')}</span>
                                             <div>
-                                                <strong>¡${c.challenger?.username} te ha retado! <span style="font-size:0.75rem;background:rgba(139,92,246,0.25);padding:0.15rem 0.5rem;border-radius:8px;margin-left:0.3rem;">${gtLabel}</span></strong>
-                                                <div style="font-size:0.8rem; opacity:0.7;">Consiguió ${c.challenger_score} pts. ¿Puedes superarla?</div>
+                                                <strong>¡${cName} te ha retado! <span style="font-size:0.75rem;background:rgba(139,92,246,0.25);padding:0.15rem 0.5rem;border-radius:8px;margin-left:0.3rem;">${this.esc(gtLabel)}</span></strong>
+                                                <div style="font-size:0.8rem; opacity:0.7;">Consiguió ${Number(c.challenger_score) || 0} pts. ¿Puedes superarla?</div>
                                             </div>
                                         </div>
-                                        <button class="btn" style="padding:0.5rem 1rem; font-size:0.85rem;" onclick="app.acceptChallengeBattle('${c.id}', '${c.challenger?.username}', ${c.challenger_score}, '${c.challenger_id}', '${c.game_type || 'math'}')">⚔️ ¡Aceptar Batalla!</button>
+                                        <button class="btn" style="padding:0.5rem 1rem; font-size:0.85rem;" onclick="app.acceptChallengeBattle('${cid}', '${cName}', ${Number(c.challenger_score) || 0}, '${chId}', '${gtSafe}')">⚔️ ¡Aceptar Batalla!</button>
                                     </div>
                                 `;
                             } else {
@@ -3595,8 +3613,8 @@
                                         <div style="display:flex; align-items:center; gap:0.8rem;">
                                             <span style="font-size:2rem;">⏳</span>
                                             <div>
-                                                <strong>Retaste a ${c.opponent?.username} <span style="font-size:0.75rem;background:rgba(255,255,255,0.1);padding:0.15rem 0.5rem;border-radius:8px;margin-left:0.3rem;">${gtLabel}</span></strong>
-                                                <div style="font-size:0.8rem; opacity:0.7;">Puntuación enviada: ${c.challenger_score} pts. Esperando a que juegue.</div>
+                                                <strong>Retaste a ${this.esc(c.opponent?.username || 'Amiga')} <span style="font-size:0.75rem;background:rgba(255,255,255,0.1);padding:0.15rem 0.5rem;border-radius:8px;margin-left:0.3rem;">${this.esc(gtLabel)}</span></strong>
+                                                <div style="font-size:0.8rem; opacity:0.7;">Puntuación enviada: ${Number(c.challenger_score) || 0} pts. Esperando a que juegue.</div>
                                             </div>
                                         </div>
                                         <span style="font-size:0.8rem; opacity:0.5;">En espera</span>
@@ -3615,8 +3633,8 @@
                             const iAmChallenger = c.challenger_id === this.cloudUser.id;
                             const myScore = iAmChallenger ? c.challenger_score : c.opponent_score;
                             const otherScore = iAmChallenger ? c.opponent_score : c.challenger_score;
-                            const otherName = iAmChallenger ? c.opponent?.username : c.challenger?.username;
-                            const otherAvatar = iAmChallenger ? c.opponent?.avatar : c.challenger?.avatar;
+                            const otherName = this.esc(iAmChallenger ? c.opponent?.username : c.challenger?.username);
+                            const otherAvatar = this.esc(iAmChallenger ? c.opponent?.avatar : c.challenger?.avatar);
                             const gtLabel = this.gameTypeLabel(c.game_type);
 
                             const iWon = c.winner_id === this.cloudUser.id;
@@ -3723,7 +3741,7 @@
                 }
             },
 
-            notify(t, m) { const box = document.getElementById('notification-box'); const toast = document.createElement('div'); toast.className='toast'; toast.innerHTML=`<strong>${t}</strong><br><small>${m}</small>`; box.appendChild(toast); setTimeout(()=>toast.remove(), 4000); },
+            notify(t, m) { const box = document.getElementById('notification-box'); const toast = document.createElement('div'); toast.className='toast'; toast.innerHTML=`<strong>${this.esc(t)}</strong><br><small>${this.esc(m)}</small>`; box.appendChild(toast); setTimeout(()=>toast.remove(), 4000); },
 
             // --- APRENDO JUGANDO ---
             showArcadeConfig(type) {
@@ -5333,8 +5351,8 @@
                             <div class="timeline-left">
                                 <div class="timeline-icon">${emoji}</div>
                                 <div class="timeline-info">
-                                    <h4>${title}</h4>
-                                    <p>${sub}</p>
+                                    <h4>${this.esc(title)}</h4>
+                                    <p>${this.esc(sub)}</p>
                                 </div>
                             </div>
                             <div class="timeline-xp">+${xp} XP</div>
