@@ -1706,6 +1706,16 @@
     <script src="js/aventura/engine.js"></script>
     <script src="js/aventura/content.js"></script>
     <script src="js/explora/extra_stories.js"></script>
+    <script src="js/explora/pack_01.js"></script>
+    <script src="js/explora/pack_02.js"></script>
+    <script src="js/explora/pack_03.js"></script>
+    <script src="js/explora/pack_04.js"></script>
+    <script src="js/explora/pack_05.js"></script>
+    <script src="js/explora/pack_06.js"></script>
+    <script src="js/explora/pack_07.js"></script>
+    <script src="js/explora/pack_08.js"></script>
+    <script src="js/explora/pack_09.js"></script>
+    <script src="js/explora/pack_10.js"></script>
     <script>
         // --- SONIDOS Y CONFETI ---
         const audio = window.audio || new (window.AudioContext || window.webkitAudioContext)();
@@ -4515,10 +4525,11 @@
                     else if (age >= 12) ageBracket = "teen";
                 }
                 
-                // 2. Obtener pool de misiones por edad + historias extra
+                // 2. Obtener pool de misiones por edad + historias extra y packs temáticos
                 const basePool = this.library[ageBracket] || this.library["middle"];
                 const extraMiddle = (window.EXPLORA_EXTRA_STORIES && window.EXPLORA_EXTRA_STORIES.middle) || [];
-                let pool = (ageBracket === "middle" || ageBracket === "teen") ? [...basePool, ...extraMiddle] : [...basePool];
+                const packStories = Array.isArray(window.EXPLORA_PACKS) ? window.EXPLORA_PACKS : [];
+                let pool = (ageBracket === "middle" || ageBracket === "teen") ? [...basePool, ...extraMiddle, ...packStories] : [...basePool];
                 
                 // 3. Filtrar por intereses del perfil solo si quedan suficientes historias (>= 4)
                 if (this.curr && this.curr.interests && this.curr.interests.length > 0) {
@@ -4540,6 +4551,22 @@
                 
                 // 6. Clonar recursivamente para no mutar la base de datos de la biblioteca
                 const mission = JSON.parse(JSON.stringify(rawMission));
+                if (!mission.image) {
+                    const themeImgs = {
+                        'Espacio': ['assets/explora/middle_aurora.jpg', 'assets/explora/middle_cometa.jpg', 'assets/explora/teen_agujeros.jpg', 'assets/explora/young_luna.jpg'],
+                        'Ciencia': ['assets/explora/middle_estatura.jpg', 'assets/explora/middle_reloj.jpg', 'assets/explora/teen_grafeno.jpg', 'assets/explora/teen_materia.jpg'],
+                        'Historia': ['assets/explora/middle_pompeya.jpg', 'assets/explora/teen_enigma.jpg'],
+                        'Naturaleza': ['assets/explora/middle_plantas.jpg', 'assets/explora/young_bosque.jpg', 'assets/explora/teen_tierra.jpg'],
+                        'Animales': ['assets/explora/middle_calamar.jpg', 'assets/explora/middle_cangrejos.jpg', 'assets/explora/young_delfin.jpg', 'assets/explora/young_hormigas.jpg', 'assets/explora/young_pulpo.jpg'],
+                        'Geografía': ['assets/explora/cat_geografia.jpg'],
+                        'Inventos': ['assets/explora/cat_inventos.jpg'],
+                        'Tecnología': ['assets/explora/cat_tecnologia.jpg'],
+                        'Arte': ['assets/explora/cat_arte.jpg'],
+                        'Salud': ['assets/explora/cat_cuerpo.jpg']
+                    };
+                    const candidates = themeImgs[mission.interest] || ['assets/explora/middle_aurora.jpg'];
+                    mission.image = candidates[Math.floor(Math.random() * candidates.length)];
+                }
                 
                 // 7. Inyección dinámica del nombre en título, historia y preguntas
                 mission.title = mission.title.replaceAll("{{NAME}}", studentName);
