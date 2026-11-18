@@ -1294,7 +1294,7 @@
                             <div id="renderer-theory" class="glass-card" style="display:none; text-align: left; padding: 2.5rem; width: 100%; max-width: 750px;">
                                 <div id="theory-image-box" style="width:100%; aspect-ratio: 16/9; border-radius:20px; overflow:hidden; margin-bottom:1.5rem; display:none; border:1px solid var(--glass-border); background: rgba(255,255,255,0.02); position:relative;">
                                     <div id="theory-img-loading" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:0.8rem; opacity:0.5;">Cargando imagen...</div>
-                                    <img id="theory-img" src="" style="width:100%; height:100%; object-fit:cover; opacity:0; transition:0.3s;" onload="this.style.opacity=1; document.getElementById('theory-img-loading').style.display='none'" onerror="this.src='https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=800';">
+                                    <img id="theory-img" src="" style="width:100%; height:100%; object-fit:cover; opacity:0; transition:0.3s;" onload="this.style.opacity=1; document.getElementById('theory-img-loading').style.display='none'" onerror="document.getElementById('theory-image-box').style.display='none';">
                                 </div>
                                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1.5rem; flex-wrap:wrap; gap:0.5rem;">
                                     <h3 id="theory-title" style="margin: 0; color: var(--xp-color); font-size: 2rem;"></h3>
@@ -4846,12 +4846,16 @@
                     document.getElementById('theory-title').textContent = item.title;
                     document.getElementById('theory-body').innerHTML = item.content.replace(/\n/g, '<br>');
                     const imgBox = document.getElementById('theory-image-box');
-                    // Generación de Imagen por IA (Mucho más relevante)
-                    const query = item.imageQuery || `${this.currStudy.name} ${item.title}`;
-                    imgBox.style.display = 'block';
-                    document.getElementById('theory-img-loading').style.display = 'flex';
-                    document.getElementById('theory-img').style.opacity = '0';
-                    document.getElementById('theory-img').src = `https://image.pollinations.ai/prompt/${encodeURIComponent(query)}?width=800&height=450&nologo=true&seed=${Math.floor(Math.random()*1000)}`;
+                    const imgEl = document.getElementById('theory-img');
+                    if (item.image) {
+                        imgBox.style.display = 'block';
+                        document.getElementById('theory-img-loading').style.display = 'flex';
+                        imgEl.style.opacity = '0';
+                        imgEl.src = item.image;
+                    } else {
+                        imgBox.style.display = 'none';
+                        imgEl.removeAttribute('src');
+                    }
                 } else if (item.type === 'quiz') {
                     document.getElementById('renderer-quiz').style.display = 'block';
                     document.getElementById('quiz-question').textContent = item.question;
