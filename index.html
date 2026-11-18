@@ -833,15 +833,16 @@
                 <div id="form-auth-register" style="display:none;">
                     <input type="text" id="reg-username" class="arcade-input" style="font-size:1.1rem; padding:0.8rem; width:100%; max-width:100%; margin-bottom:0.8rem;" placeholder="Nombre de Alumna (ej. Sofia)">
                     <input type="password" id="reg-password" class="arcade-input" style="font-size:1.1rem; padding:0.8rem; width:100%; max-width:100%; margin-bottom:0.8rem;" placeholder="Crea tu Contraseña o PIN">
-                    <select id="reg-grade" class="arcade-input" style="font-size:1rem; padding:0.7rem; width:100%; max-width:100%; margin-bottom:1rem;">
+                    <select id="reg-grade" class="arcade-input" style="font-size:1rem; padding:0.7rem; width:100%; max-width:100%; margin-bottom:0.4rem;">
                         <option value="1º Primaria">1º Primaria</option>
                         <option value="2º Primaria">2º Primaria</option>
                         <option value="3º Primaria">3º Primaria</option>
-                        <option value="4º Primaria" selected>4º Primaria</option>
+                        <option value="4º Primaria">4º Primaria</option>
                         <option value="5º Primaria">5º Primaria</option>
-                        <option value="6º Primaria">6º Primaria</option>
+                        <option value="6º Primaria" selected>6º Primaria</option>
                         <option value="1º ESO">1º ESO</option>
                     </select>
+                    <p style="font-size:0.74rem; opacity:0.65; margin-bottom:1rem; text-align:left;">📚 El temario de Aventura y Biblioteca está diseñado para <b>6.º de Primaria (Aragón)</b>.</p>
                     
                     <p style="font-size:0.8rem; opacity:0.7; margin-bottom:0.5rem; text-align:left;">Elige tu Avatar:</p>
                     <div id="reg-avatar-picker" style="display:grid; grid-template-columns:repeat(6, 1fr); gap:0.5rem; margin-bottom:1.5rem;">
@@ -2579,26 +2580,23 @@
             renderPapiFails() {
                 const list = document.getElementById('papi-fails-list');
                 if(!list) return;
-                let fails = [];
-                if(this.curr && this.curr.fails) fails = this.curr.fails;
-                if(fails.length === 0) {
-                    list.innerHTML = '<div style="opacity:0.6; padding:1.5rem; text-align:center;">🎉 ¡Sin fallos registrados! Tu hija está respondiendo con gran precisión.</div>';
-                    return;
+                const recs = (this.cloudUser && Array.isArray(this.cloudUser.recommended_missions)) ? this.cloudUser.recommended_missions : [];
+                let recBlock = '';
+                if(window.Adv && this.cloudUser) {
+                    const opts = Adv.meta.map(m => `<option value="${m.id}">${Adv.subjectOf(m.subject).short} · ${m.title}</option>`).join('');
+                    const activeRecs = recs.length ? recs.map(r => `<span style="display:inline-flex;align-items:center;gap:0.4rem;background:rgba(236,72,153,0.2);border:1px solid #f472b6;padding:0.3rem 0.7rem;border-radius:99px;font-size:0.8rem;font-weight:700;">📌 ${r.title} <button onclick="app.removeRecommendedMission('${this.cloudUser.id}', ${r.id}, ()=>app.renderPapiFails())" style="background:none;border:none;color:#fca5a5;cursor:pointer;font-weight:900;">✕</button></span>`).join(' ') : '<span style="opacity:0.6;font-size:0.82rem;">Ninguno marcado todavía.</span>';
+                    recBlock = `
+                        <div style="background:rgba(236,72,153,0.08);border:1px solid rgba(236,72,153,0.3);border-radius:16px;padding:1rem;margin-bottom:1.2rem;">
+                            <div style="font-weight:800;color:#f472b6;margin-bottom:0.4rem;">📌 Marcar Examen de la Semana / Misión Recomendada</div>
+                            <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.7rem;">
+                                <select id="papi-rec-select" class="admin-input" style="flex:1;min-width:200px;margin:0;">${opts}</select>
+                                <button class="btn" style="padding:0.5rem 1rem;font-size:0.82rem;" onclick="app.assignRecommendedMission('${this.cloudUser.id}', document.getElementById('papi-rec-select').value, 'Papi', ()=>app.renderPapiFails())">+ Destacar en su Inicio</button>
+                            </div>
+                            <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">${activeRecs}</div>
+                        </div>`;
                 }
-                let html = '';
-                fails.slice(-10).reverse().forEach(f => {
-                    html += `
-                        <div style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); border-radius:12px; padding:0.8rem 1.2rem; display:flex; justify-content:space-between; align-items:center;">
-                            <div>
-                                <span style="font-weight:700; color:white;">⚠️ ${f.q || f.op || 'Operación'}</span>
-                            </div>
-                            <div style="font-size:0.85rem; color:#fca5a5;">
-                                Respondió: <strong>${f.ans || '?'}</strong> (Correcto: <strong style="color:#34d399;">${f.expected || '?'}</strong>)
-                            </div>
-                        </div>
-                    `;
-                });
-                list.innerHTML = html;
+                const reportHtml = window.Adv ? Adv.renderMetricsReportHtml(Adv.metricsSt(), { adv: this.curr ? this.curr.adv : {}, advMeta: Adv.metaSt(), fails: this.curr ? this.curr.fails : [] }, this.curr ? this.curr.fails : []) : '';
+                list.innerHTML = recBlock + reportHtml;
             },
 
             renderPapiMissions() {
@@ -2852,7 +2850,7 @@
                                         <div style="display:flex; align-items:center; gap:0.5rem;">
                                             <span style="font-weight:700; font-size:1.05rem;">${s.username}</span>
                                             ${isAdminRow ? '<span style="background:rgba(236,72,153,0.2); color:#f472b6; font-size:0.7rem; padding:0.1rem 0.5rem; border-radius:6px; font-weight:700;">ADMIN</span>' : ''}
-                                            <span style="font-family:monospace; font-size:0.8rem; background:rgba(0,0,0,0.3); padding:0.1rem 0.4rem; border-radius:4px; opacity:0.7;">🔑 ${s.password}</span>
+                                            <span style="font-size:0.75rem; background:rgba(0,0,0,0.3); padding:0.1rem 0.45rem; border-radius:4px; opacity:0.75;">${String(s.password || '').startsWith('sha256:') ? '🔒 Cifrada' : '🔓 Pendiente cifrado'}</span>
                                         </div>
                                         <div style="font-size:0.8rem; opacity:0.6;">${s.grade} · Nivel ${s.level} · Actividad: ${s.last_active_date || 'Hoy'}</div>
                                     </div>
@@ -2895,25 +2893,25 @@
                 if(!s) return;
 
                 card.style.display = 'block';
-
-                let failsList = [];
-                if(this.data.users[s.username]) {
-                    failsList = this.data.users[s.username].fails || [];
-                }
-
-                let failsHtml = '';
-                if(failsList.length > 0) {
-                    failsHtml = failsList.slice(-6).map(f => `
-                        <div style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); border-radius:12px; padding:0.6rem 1rem; display:flex; justify-content:space-between; align-items:center;">
-                            <span>⚠️ <strong>${f.q || f.op || 'Operación'}</strong></span>
-                            <span style="color:#fca5a5; font-size:0.85rem;">Respondió: ${f.ans || '?'} (Correcto: ${f.expected || '?'})</span>
-                        </div>
-                    `).join('');
-                } else {
-                    failsHtml = '<p style="opacity:0.6; font-size:0.85rem;">¡No hay fallos recientes registrados! Su rendimiento es excelente.</p>';
-                }
-
                 const isStudentAdmin = (s.role === 'admin' || s.username.toLowerCase() === 'admin');
+                const isHashed = String(s.password || '').startsWith('sha256:');
+                const localFails = (this.data.users[s.username] && this.data.users[s.username].fails) || [];
+                const reportHtml = window.Adv ? Adv.renderMetricsReportHtml(s.metrics, s.progress, localFails) : '';
+                const recs = Array.isArray(s.recommended_missions) ? s.recommended_missions : [];
+                let recBlock = '';
+                if(!isStudentAdmin && window.Adv) {
+                    const opts = Adv.meta.map(m => `<option value="${m.id}">${Adv.subjectOf(m.subject).short} · ${m.title}</option>`).join('');
+                    const activeRecs = recs.length ? recs.map(r => `<span style="display:inline-flex;align-items:center;gap:0.4rem;background:rgba(236,72,153,0.2);border:1px solid #f472b6;padding:0.3rem 0.7rem;border-radius:99px;font-size:0.8rem;font-weight:700;">📌 ${r.title} <button onclick="app.removeRecommendedMission('${s.id}', ${r.id}, ()=>app.loadAdminStudents())" style="background:none;border:none;color:#fca5a5;cursor:pointer;font-weight:900;">✕</button></span>`).join(' ') : '<span style="opacity:0.6;font-size:0.82rem;">Ninguna recomendada.</span>';
+                    recBlock = `
+                        <div style="background:rgba(236,72,153,0.08);border:1px solid rgba(236,72,153,0.3);border-radius:16px;padding:1rem;margin-bottom:1.2rem;">
+                            <div style="font-weight:800;color:#f472b6;margin-bottom:0.4rem;">📌 Examen de la Semana / Misión Recomendada para ${s.username}</div>
+                            <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.7rem;">
+                                <select id="super-rec-select" class="admin-input" style="flex:1;min-width:200px;margin:0;">${opts}</select>
+                                <button class="btn" style="padding:0.5rem 1rem;font-size:0.82rem;" onclick="app.assignRecommendedMission('${s.id}', document.getElementById('super-rec-select').value, 'Admin', ()=>app.loadAdminStudents())">+ Asignar</button>
+                            </div>
+                            <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">${activeRecs}</div>
+                        </div>`;
+                }
 
                 card.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1.2rem; margin-bottom:1.5rem; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:1.5rem;">
@@ -2926,19 +2924,19 @@
                                 </div>
                                 <p style="opacity:0.7; font-size:0.9rem; margin-top:0.3rem;">${s.grade} · Nivel ${s.level} · Registrada: ${s.created_at ? new Date(s.created_at).toLocaleDateString() : 'Recientemente'}</p>
                                 <div style="margin-top:0.5rem; font-size:0.85rem;">
-                                    🔑 Contraseña actual: <span style="font-family:monospace; font-weight:700; background:rgba(0,0,0,0.4); padding:0.2rem 0.6rem; border-radius:6px; color:#38bdf8; border:1px solid rgba(56,189,248,0.3);">${s.password || 'Sin clave'}</span>
+                                    🔐 Seguridad: <span style="font-weight:700; background:rgba(0,0,0,0.4); padding:0.2rem 0.6rem; border-radius:6px; color:${isHashed ? '#34d399' : '#fbbf24'};">${isHashed ? '🔒 Contraseña cifrada (SHA-256)' : '⚠️ Se cifrará automáticamente al iniciar sesión'}</span>
                                 </div>
                             </div>
                         </div>
                         <div style="display:flex; flex-wrap:wrap; gap:0.6rem;">
-                            <button class="btn" style="padding:0.5rem 1rem; font-size:0.8rem; background:linear-gradient(135deg, #8b5cf6, #ec4899);" onclick="app.adminUpdateStudentPassword('${s.id}', '${s.username}')">🔑 Cambiar Contraseña</button>
+                            <button class="btn" style="padding:0.5rem 1rem; font-size:0.8rem; background:linear-gradient(135deg, #8b5cf6, #ec4899);" onclick="app.adminUpdateStudentPassword('${s.id}', '${s.username}')">🔑 Resetear Contraseña</button>
                             <button class="btn" style="padding:0.5rem 1rem; font-size:0.8rem; background:linear-gradient(135deg, #f59e0b, #d97706);" onclick="app.adminUpdateStudentXP('${s.id}', '${s.username}')">💎 Modificar XP</button>
                             ${!isStudentAdmin ? `<button class="btn" style="padding:0.5rem 1rem; font-size:0.8rem; background:linear-gradient(135deg, #10b981, #059669);" onclick="app.impersonateStudent('${s.username}')">👀 Ver como ${s.username}</button>` : ''}
                             ${!isStudentAdmin ? `<button class="btn" style="padding:0.5rem 1rem; font-size:0.8rem; background:rgba(239,68,68,0.2); color:#fca5a5; border:1px solid rgba(239,68,68,0.4);" onclick="app.adminDeleteStudent('${s.id}', '${s.username}')">🗑️ Borrar</button>` : ''}
                         </div>
                     </div>
 
-                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:1rem; margin-bottom:1.5rem;">
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:1rem; margin-bottom:1.2rem;">
                         <div style="background:rgba(255,255,255,0.04); border-radius:16px; padding:1rem; text-align:center;">
                             <div style="font-size:0.8rem; opacity:0.6;">XP Acumulado</div>
                             <div style="font-size:1.8rem; font-weight:800; color:#fbbf24;">${s.xp}</div>
@@ -2960,16 +2958,45 @@
                             <div style="font-size:1.1rem; font-weight:700; color:white; margin-top:0.4rem;">${s.last_active_date || 'Hoy'}</div>
                         </div>
                     </div>
-
-                    <h4 style="margin-bottom:0.8rem; color:#fca5a5;">🎯 Conceptos o Fallos para Reforzar Juntos:</h4>
-                    <div style="display:flex; flex-direction:column; gap:0.5rem;">
-                        ${failsHtml}
-                    </div>
+                    ${recBlock}
+                    ${reportHtml}
                 `;
             },
 
+            async assignRecommendedMission(studentId, missionId, assignedBy, cb) {
+                if(!studentId || !missionId || !window.Adv) return;
+                const m = Adv.getMeta(Number(missionId));
+                if(!m) return;
+                try {
+                    const { data: prof } = await sb.from('profiles').select('recommended_missions').eq('id', studentId).maybeSingle();
+                    let list = (prof && Array.isArray(prof.recommended_missions)) ? prof.recommended_missions : [];
+                    if(!list.some(x => Number(x.id) === m.id)) {
+                        list.push({ id: m.id, title: m.title, subject: m.subject, assignedBy: assignedBy || 'Admin', d: new Date().toISOString() });
+                    }
+                    const { error } = await sb.from('profiles').update({ recommended_missions: list }).eq('id', studentId);
+                    if(error) throw error;
+                    if(this.cloudUser && this.cloudUser.id === studentId) this.cloudUser.recommended_missions = list;
+                    this.notify("📌 Misión Asignada", `"${m.title}" aparecerá destacada como Examen de la Semana.`);
+                    if(cb) cb();
+                } catch(e) {
+                    this.notify("⚠️ Falta columna en Supabase", "Ejecuta el SQL de actualización en Supabase para guardar misiones recomendadas en la nube.");
+                }
+            },
+
+            async removeRecommendedMission(studentId, missionId, cb) {
+                try {
+                    const { data: prof } = await sb.from('profiles').select('recommended_missions').eq('id', studentId).maybeSingle();
+                    let list = (prof && Array.isArray(prof.recommended_missions)) ? prof.recommended_missions : [];
+                    list = list.filter(x => Number(x.id) !== Number(missionId));
+                    const { error } = await sb.from('profiles').update({ recommended_missions: list }).eq('id', studentId);
+                    if(error) throw error;
+                    if(this.cloudUser && this.cloudUser.id === studentId) this.cloudUser.recommended_missions = list;
+                    if(cb) cb();
+                } catch(e) { this.notify("❌ Error", e.message); }
+            },
+
             async adminUpdateStudentPassword(studentId, studentUsername) {
-                const newPass = prompt(`Introduce la nueva contraseña para '${studentUsername}':`);
+                const newPass = prompt(`Introduce la nueva contraseña para '${studentUsername}' (se guardará cifrada):`);
                 if(newPass === null) return;
                 const trimmed = newPass.trim();
                 if(trimmed.length < 3) {
@@ -2977,9 +3004,10 @@
                     return;
                 }
                 try {
-                    const { error } = await sb.from('profiles').update({ password: trimmed }).eq('id', studentId);
+                    const hashed = await this.hashPassword(studentUsername, trimmed);
+                    const { error } = await sb.from('profiles').update({ password: hashed }).eq('id', studentId);
                     if(error) throw error;
-                    this.notify("✅ Contraseña Actualizada", `Nueva contraseña para ${studentUsername}: ${trimmed}`);
+                    this.notify("✅ Contraseña Reseteada", `Nueva contraseña de ${studentUsername} guardada de forma cifrada.`);
                     await this.loadAdminStudents();
                 } catch(e) {
                     this.notify("❌ Error", "No se pudo actualizar la contraseña: " + e.message);
@@ -3034,6 +3062,16 @@
                 }
             },
 
+            async hashPassword(username, password) {
+                const raw = `lara_platform_v1:${String(username || '').trim().toLowerCase()}:${String(password || '')}`;
+                if (window.crypto && window.crypto.subtle) {
+                    const buf = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw));
+                    const hex = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+                    return 'sha256:' + hex;
+                }
+                return password;
+            },
+
             async adminChangeOwnPassword() {
                 const newPassInput = document.getElementById('super-admin-new-pass');
                 const msgEl = document.getElementById('super-admin-pass-change-msg');
@@ -3048,13 +3086,14 @@
                 }
                 if(!this.cloudUser) return;
                 try {
-                    const { error } = await sb.from('profiles').update({ password: newPass }).eq('id', this.cloudUser.id);
+                    const hashed = await this.hashPassword(this.cloudUser.username, newPass);
+                    const { error } = await sb.from('profiles').update({ password: hashed }).eq('id', this.cloudUser.id);
                     if(error) throw error;
-                    this.cloudUser.password = newPass;
+                    this.cloudUser.password = hashed;
                     localStorage.setItem('lara_cloud_session', JSON.stringify(this.cloudUser));
                     newPassInput.value = '';
                     if(msgEl) {
-                        msgEl.textContent = "✅ ¡Contraseña de Administrador actualizada con éxito!";
+                        msgEl.textContent = "✅ ¡Contraseña de Administrador actualizada y cifrada con éxito!";
                         msgEl.style.color = "var(--success)";
                     }
                     this.notify("🔐 Seguridad", "Contraseña de Admin actualizada.");
@@ -3240,11 +3279,12 @@
                         return;
                     }
 
+                    const hashedPassword = await this.hashPassword(username, password);
                     const { data: newProfile, error: insertErr } = await sb
                         .from('profiles')
                         .insert([{
                             username: username,
-                            password: password,
+                            password: hashedPassword,
                             grade: grade,
                             avatar: avatar,
                             role: 'student',
@@ -3294,10 +3334,16 @@
                         .eq('username', username)
                         .maybeSingle();
 
-                    if(!profile || profile.password !== password) {
+                    const hashed = await this.hashPassword(username, password);
+                    const isLegacyPlain = profile && profile.password === password;
+                    if(!profile || (profile.password !== hashed && !isLegacyPlain)) {
                         msg.textContent = "Usuario o contraseña incorrectos.";
                         msg.style.color = "var(--error)";
                         return;
+                    }
+                    if(isLegacyPlain && hashed.startsWith('sha256:')) {
+                        sb.from('profiles').update({ password: hashed }).eq('id', profile.id).then(() => {});
+                        profile.password = hashed;
                     }
 
                     this.cloudUser = profile;
@@ -3400,7 +3446,7 @@
                         if(!this.curr.achievements) this.curr.achievements = [];
                         if(!this.curr.fails) this.curr.fails = [];
                         if(!this.curr.mastery) this.curr.mastery = { calcula: { '+': 1, '-': 1, '*': 1, '/': 1 } };
-                        if(window.Adv && profile.progress && typeof profile.progress === 'object') this.curr.adv = Adv.mergeProgress(this.curr.adv, profile.progress);
+                        if(window.Adv) Adv.applyCloudProfile(profile);
                         this.save();
 
                         document.getElementById('sidebar-user-name').textContent = n;

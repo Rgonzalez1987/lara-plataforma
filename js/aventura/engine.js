@@ -1,14 +1,10 @@
 /* =========================================================
    LARA · MOTOR DE AVENTURA Y BIBLIOTECA (EDICIÓN COMPLETA)
-   Incluye:
-   - Sintetizador polifónico cálido tipo Marimba/Kalimba (estilo Duolingo)
+   - Audio cálido polifónico tipo Marimba/Kalimba + selector de voz neuronal
    - Mascota animada SVG ("Lumi") con reacciones en vivo
-   - Sistema de 5 Vidas (❤️) + Reto Relámpago de Cálculo (1 cifra contrarreloj) para recargar vidas
-   - Buzón de Fallos inteligente conectado con Modo Papi y Super-Admin
-   - Modo Simulacro de Examen con nota escolar sobre 10 y corrección detallada
-   - 3 Misiones Diarias + Cofre Diario + Tarjeta "Continuar Aventura" en Inicio
-   - Álbum de Trofeos de las 40 Misiones en Progreso
-   - Duelos temáticos entre amigas por Asignatura y Trivial Mixto
+   - 5 Vidas (❤️) + Reto Relámpago de Cálculo (25s) para recargar
+   - Sincronización en la nube: progreso, fallos, simulacros, métricas de tiempo y misiones recomendadas
+   - Mejoras pedagógicas: detector anti-impulsividad (<2s), botón 💡 Pista, ejemplos resueltos y Boss exigente
    ========================================================= */
 (function () {
 'use strict';
@@ -40,7 +36,7 @@ A.subjectOf = key => A.SUBJECTS.find(s => s.key === key) || A.SUBJECTS[0];
 A.stripHtml = h => String(h).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 const todayStr = () => new Date().toISOString().split('T')[0];
 
-/* ---------- progreso, vidas, buzón de fallos y misiones diarias ---------- */
+/* ---------- progreso, vidas, buzón, exámenes y métricas ---------- */
 A.st = function () {
   const c = window.app && window.app.curr;
   if (!c) return {};
@@ -50,11 +46,12 @@ A.st = function () {
 A.metaSt = function () {
   const c = window.app && window.app.curr;
   const td = todayStr();
-  if (!c) return { hearts: 5, lastDate: td, inbox: [], quests: { date: td, lessons: 0, maxCombo: 0, sprints: 0, chest: false } };
-  if (!c.advMeta) c.advMeta = { hearts: 5, lastDate: td, inbox: [], quests: { date: td, lessons: 0, maxCombo: 0, sprints: 0, chest: false } };
+  if (!c) return { hearts: 5, lastDate: td, inbox: [], exams: [], quests: { date: td, lessons: 0, maxCombo: 0, sprints: 0, chest: false } };
+  if (!c.advMeta) c.advMeta = { hearts: 5, lastDate: td, inbox: [], exams: [], quests: { date: td, lessons: 0, maxCombo: 0, sprints: 0, chest: false } };
   const m = c.advMeta;
   if (typeof m.hearts !== 'number') m.hearts = 5;
   if (!Array.isArray(m.inbox)) m.inbox = [];
+  if (!Array.isArray(m.exams)) m.exams = [];
   if (!m.quests || m.quests.date !== td) {
     m.quests = { date: td, lessons: 0, maxCombo: 0, sprints: 0, chest: false };
   }
@@ -63,6 +60,17 @@ A.metaSt = function () {
     m.lastDate = td;
   }
   return m;
+};
+A.metricsSt = function () {
+  const c = window.app && window.app.curr;
+  if (!c) return { totalSec: 0, daily: {}, questions: { count: 0, totalSec: 0, impulsiveCount: 0, stuckCount: 0 }, missions: {}, alerts: [] };
+  if (!c.metrics) c.metrics = { totalSec: 0, daily: {}, questions: { count: 0, totalSec: 0, impulsiveCount: 0, stuckCount: 0 }, missions: {}, alerts: [] };
+  const mt = c.metrics;
+  if (!mt.daily) mt.daily = {};
+  if (!mt.questions) mt.questions = { count: 0, totalSec: 0, impulsiveCount: 0, stuckCount: 0 };
+  if (!mt.missions) mt.missions = {};
+  if (!Array.isArray(mt.alerts)) mt.alerts = [];
+  return mt;
 };
 A.hearts = () => A.metaSt().hearts;
 A.addHearts = function (n) {
@@ -77,6 +85,48 @@ A.recordQuest = function (field, val, isMax) {
   else q[field] = (q[field] || 0) + val;
   A.saveProgress();
 };
+A.recordTimeMetric = function (missionId, qHtml, sec, ok) {
+  const mt = A.metricsSt();
+  const td = todayStr();
+  const clamped = Math.max(0.2, Math.min(180, sec));
+  mt.totalSec = Math.round((mt.totalSec || 0) + clamped);
+  mt.daily[td] = Math.round((mt.daily[td] || 0) + clamped);
+
+  mt.questions.count = (mt.questions.count || 0) + 1;
+  mt.questions.totalSec = Math.round(((mt.questions.totalSec || 0) + clamped) * 10) / 10;
+
+  const isImpulsive = !ok && clamped < 2.0;
+  const isStuck = clamped > 25.0;
+  if (isImpulsive) mt.questions.impulsiveCount = (mt.questions.impulsiveCount || 0) + 1;
+  if (isStuck) mt.questions.stuckCount = (mt.questions.stuckCount || 0) + 1;
+
+  if (missionId) {
+    if (!mt.missions[missionId]) mt.missions[missionId] = { timeSec: 0, qCount: 0, impulsive: 0, stuck: 0 };
+    const mm = mt.missions[missionId];
+    mm.timeSec = Math.round((mm.timeSec || 0) + clamped);
+    mm.qCount = (mm.qCount || 0) + 1;
+    if (isImpulsive) mm.impulsive = (mm.impulsive || 0) + 1;
+    if (isStuck) mm.stuck = (mm.stuck || 0) + 1;
+  }
+
+  if (isImpulsive || isStuck) {
+    const mMeta = missionId ? A.getMeta(missionId) : null;
+    mt.alerts.push({
+      type: isImpulsive ? 'impulsive' : 'stuck',
+      sec: Math.round(clamped * 10) / 10,
+      q: A.stripHtml(qHtml || '').slice(0, 75),
+      missionTitle: mMeta ? mMeta.title : 'Práctica',
+      d: new Date().toISOString()
+    });
+    if (mt.alerts.length > 25) mt.alerts = mt.alerts.slice(-25);
+  }
+};
+A.recordExamResult = function (title, subject, nota, ft, total) {
+  const m = A.metaSt();
+  m.exams.push({ title, subject, nota, ft, total, d: new Date().toISOString() });
+  if (m.exams.length > 25) m.exams = m.exams.slice(-25);
+  A.saveProgress();
+};
 A.recordFail = function (missionId, ex, correctStr) {
   const c = window.app && window.app.curr;
   if (!c) return;
@@ -85,7 +135,6 @@ A.recordFail = function (missionId, ex, correctStr) {
   const qClean = A.stripHtml(ex.q || 'Pregunta');
   const corrClean = A.stripHtml(correctStr || '');
 
-  // Guardar en el historial de fallos de Modo Papi / Super-Admin
   if (!Array.isArray(c.fails)) c.fails = [];
   const label = `[${subShort} · ${meta ? meta.title : 'Misión'}] ${qClean.slice(0, 85)}`;
   if (!c.fails.some(f => f && f.q === label)) {
@@ -93,7 +142,6 @@ A.recordFail = function (missionId, ex, correctStr) {
     if (c.fails.length > 40) c.fails = c.fails.slice(-40);
   }
 
-  // Guardar en el Buzón de Fallos interactivo de la alumna (si es ejercicio fijo serializable)
   if (ex.src && ex.src.t !== 'gen') {
     const inbox = A.metaSt().inbox;
     const key = missionId + '|' + qClean;
@@ -126,21 +174,45 @@ A.unlocked = function (id, k) {
   return A.missionDone(list[mi - 1].id);
 };
 A.hasContent = id => !!(A.content[id] && A.content[id].stations && A.content[id].stations.length === 3);
+
+/* ---------- sincronización en la nube (progress + metrics) ---------- */
+A.buildCloudPayload = function () {
+  const c = window.app && window.app.curr;
+  if (!c) return null;
+  return {
+    progress: {
+      adv: c.adv || {},
+      advMeta: A.metaSt(),
+      fails: (c.fails || []).slice(-40),
+      history: (c.history || []).slice(-60)
+    },
+    metrics: A.metricsSt()
+  };
+};
 A.saveProgress = function () {
   if (!window.app) return;
   window.app.save();
   try {
     const u = window.app.cloudUser;
-    if (u && 'progress' in u && typeof sb !== 'undefined' && sb) {
-      u.progress = window.app.curr.adv;
-      sb.from('profiles').update({ progress: window.app.curr.adv }).eq('id', u.id).then(() => {});
+    if (!u || window.app.impersonating || typeof sb === 'undefined' || !sb) return;
+    if (!('progress' in u) && !('metrics' in u)) return;
+    const payload = A.buildCloudPayload();
+    if (!payload) return;
+    const upd = {};
+    if ('progress' in u) { u.progress = payload.progress; upd.progress = payload.progress; }
+    if ('metrics' in u) { u.metrics = payload.metrics; upd.metrics = payload.metrics; }
+    if (Object.keys(upd).length) {
+      sb.from('profiles').update(upd).eq('id', u.id).then(() => {});
     }
   } catch (e) {}
 };
 A.mergeProgress = function (local, cloud) {
+  // Soporta tanto el formato antiguo {1:{s,b,stars}} como el nuevo {adv, advMeta, fails, history}
+  const cAdv = (cloud && cloud.adv) ? cloud.adv : (cloud || {});
   const out = JSON.parse(JSON.stringify(local || {}));
-  Object.keys(cloud || {}).forEach(id => {
-    const c = cloud[id], l = out[id] || { s: [0, 0, 0], b: 0, stars: [0, 0, 0, 0] };
+  Object.keys(cAdv).forEach(id => {
+    if (!/^\d+$/.test(id)) return;
+    const c = cAdv[id], l = out[id] || { s: [0, 0, 0], b: 0, stars: [0, 0, 0, 0] };
     for (let k = 0; k < 3; k++) { l.s[k] = (l.s[k] || (c.s && c.s[k])) ? 1 : 0; }
     l.b = (l.b || c.b) ? 1 : 0;
     for (let k = 0; k < 4; k++) l.stars[k] = Math.max(l.stars[k] || 0, (c.stars && c.stars[k]) || 0);
@@ -148,13 +220,40 @@ A.mergeProgress = function (local, cloud) {
   });
   return out;
 };
+A.applyCloudProfile = function (profile) {
+  if (!window.app || !window.app.curr || !profile) return;
+  const curr = window.app.curr;
+  if (profile.progress && typeof profile.progress === 'object') {
+    curr.adv = A.mergeProgress(curr.adv, profile.progress);
+    if (profile.progress.advMeta) {
+      const cm = profile.progress.advMeta;
+      const lm = A.metaSt();
+      if (Array.isArray(cm.exams) && cm.exams.length >= (lm.exams || []).length) lm.exams = cm.exams;
+      if (Array.isArray(cm.inbox) && cm.inbox.length > 0 && lm.inbox.length === 0) lm.inbox = cm.inbox;
+      if (cm.quests && cm.quests.date === todayStr()) {
+        lm.quests.lessons = Math.max(lm.quests.lessons || 0, cm.quests.lessons || 0);
+        lm.quests.maxCombo = Math.max(lm.quests.maxCombo || 0, cm.quests.maxCombo || 0);
+        lm.quests.sprints = Math.max(lm.quests.sprints || 0, cm.quests.sprints || 0);
+        lm.quests.chest = !!(lm.quests.chest || cm.quests.chest);
+      }
+      if (cm.lastDate === todayStr() && typeof cm.hearts === 'number') lm.hearts = cm.hearts;
+    }
+    if (Array.isArray(profile.progress.fails) && profile.progress.fails.length > (curr.fails || []).length) {
+      curr.fails = profile.progress.fails;
+    }
+  }
+  if (profile.metrics && typeof profile.metrics === 'object' && (profile.metrics.totalSec || 0) > ((curr.metrics && curr.metrics.totalSec) || 0)) {
+    curr.metrics = profile.metrics;
+  }
+  window.app.save();
+};
 A.xpSplit = function (id) {
   const xp = A.getMeta(id).xp, st = Math.round(xp * 0.2);
   return [st, st, st, xp - 3 * st];
 };
 
 /* =========================================================
-   MOTOR DE AUDIO CÁLIDO (MARIMBA / KALIMBA / CAMPANA SUAVE)
+   MOTOR DE AUDIO CÁLIDO + SELECTOR DE VOZ NEURONAL
    ========================================================= */
 let actx = null, masterBus = null;
 function getAudio() {
@@ -283,12 +382,51 @@ window.sfx = {
   lvl: () => A.sfx.done()
 };
 
-A.speak = function (html) {
+function pickBestSpanishVoice() {
+  if (!('speechSynthesis' in window)) return null;
+  const voices = window.speechSynthesis.getVoices() || [];
+  const esVoices = voices.filter(v => /^es/i.test(v.lang));
+  if (!esVoices.length) return null;
+  const score = v => {
+    let s = 0;
+    const n = (v.name || '').toLowerCase();
+    if (/es[-_]es/i.test(v.lang)) s += 10;
+    if (n.includes('natural') || n.includes('neural') || n.includes('online')) s += 30;
+    if (n.includes('elvira') || n.includes('álvaro') || n.includes('alvaro')) s += 25;
+    if (n.includes('google')) s += 20;
+    if (n.includes('enhanced') || n.includes('premium') || n.includes('mejorada') || n.includes('siri')) s += 24;
+    if (n.includes('mónica') || n.includes('monica') || n.includes('luciana') || n.includes('marisol')) s += 12;
+    return s;
+  };
+  return esVoices.slice().sort((a, b) => score(b) - score(a))[0];
+}
+if ('speechSynthesis' in window && window.speechSynthesis.onvoiceschanged !== undefined) {
+  window.speechSynthesis.onvoiceschanged = () => pickBestSpanishVoice();
+}
+
+let curAudioEl = null;
+A.stopAudio = function () {
+  if (curAudioEl) { try { curAudioEl.pause(); curAudioEl.currentTime = 0; } catch (e) {} curAudioEl = null; }
+  try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
+};
+A.speak = function (html, audioPath) {
+  A.stopAudio();
+  if (audioPath) {
+    try {
+      const a = new Audio(audioPath);
+      curAudioEl = a;
+      a.onerror = () => A.speak(html, null);
+      a.play().catch(() => A.speak(html, null));
+      return;
+    } catch (e) {}
+  }
   try {
     if (!('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(A.stripHtml(html));
-    u.lang = 'es-ES'; u.rate = 0.96; u.pitch = 1.05;
+    const best = pickBestSpanishVoice();
+    if (best) u.voice = best;
+    u.lang = best ? best.lang : 'es-ES';
+    u.rate = 0.96; u.pitch = 1.02;
     window.speechSynthesis.speak(u);
   } catch (e) {}
 };
@@ -432,7 +570,6 @@ function ensureCss() {
 .adv-lbl{font-size:.74rem;font-weight:700;opacity:.8;margin-top:.55rem;max-width:155px;text-align:center}
 .adv-stars{font-size:.85rem;letter-spacing:2px;margin-top:.25rem}
 
-/* Barra de vidas (corazones) y buzón de fallos */
 .adv-topbar-tools{display:flex;align-items:center;gap:.65rem;flex-wrap:wrap}
 .adv-hearts-pill{display:inline-flex;align-items:center;gap:.35rem;background:rgba(239,68,68,.12);border:2px solid rgba(239,68,68,.35);border-radius:99px;padding:.4rem .85rem;font-weight:800;font-size:.9rem}
 .adv-heart{display:inline-block;transition:transform .25s cubic-bezier(.34,1.56,.64,1)}
@@ -445,7 +582,6 @@ function ensureCss() {
 .adv-tool-btn.inbox{background:rgba(245,158,11,.18);border-color:rgba(245,158,11,.45);color:#fde68a}
 .adv-tool-btn.exam{background:linear-gradient(135deg,#06b6d4,#3b82f6);border-color:rgba(56,189,248,.5)}
 
-/* Overlay de lección */
 .adv-ov{position:fixed;inset:0;z-index:900;background:radial-gradient(circle at 50% 0,#1e1b4b 0,#070b14 72%);display:none;flex-direction:column}
 .adv-top{display:flex;align-items:center;gap:.8rem;padding:calc(.9rem + env(safe-area-inset-top)) 1.2rem .6rem;max-width:760px;width:100%;margin:0 auto}
 .adv-x{background:rgba(255,255,255,.06);border:none;color:#94a3b8;font-size:1.3rem;cursor:pointer;width:40px;height:40px;border-radius:12px;transition:.15s;flex-shrink:0}
@@ -458,7 +594,6 @@ function ensureCss() {
 .adv-combo.pop{animation:advComboPop .45s cubic-bezier(.34,1.56,.64,1)}
 @keyframes advComboPop{0%{transform:scale(.6)}50%{transform:scale(1.35)}100%{transform:scale(1)}}
 
-/* Mascota Lumi y su bocadillo */
 .adv-mascot-row{display:flex;align-items:center;gap:.9rem;margin-bottom:1rem;animation:advSlideIn .38s cubic-bezier(.22,1,.36,1)}
 .adv-speech{background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.16);border-radius:20px;padding:.75rem 1.05rem;position:relative;font-size:.92rem;font-weight:700;color:#e2e8f0;line-height:1.4;box-shadow:0 8px 20px rgba(0,0,0,.25)}
 .adv-speech::before{content:'';position:absolute;left:-9px;top:50%;transform:translateY(-50%);border-top:8px solid transparent;border-bottom:8px solid transparent;border-right:9px solid rgba(255,255,255,.16)}
@@ -475,13 +610,13 @@ function ensureCss() {
 @keyframes lumiWingL{0%,100%{transform:rotate(0)}50%{transform:rotate(10deg)}}
 @keyframes lumiWingR{0%,100%{transform:rotate(0)}50%{transform:rotate(-10deg)}}
 
-/* Escenario de ejercicio */
 .adv-body{flex:1;overflow-y:auto;padding:.8rem 1.2rem 1.2rem;max-width:760px;width:100%;margin:0 auto;-webkit-overflow-scrolling:touch}
 .adv-stage-enter{animation:advStageIn .36s cubic-bezier(.22,1,.36,1)}
 @keyframes advStageIn{from{opacity:0;transform:translateX(28px) scale(.98)}to{opacity:1;transform:translateX(0) scale(1)}}
 @keyframes advSlideIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 .adv-tag{display:inline-block;font-size:.72rem;font-weight:800;padding:.24rem .75rem;border-radius:99px;background:rgba(251,191,36,.16);color:#fbbf24;border:1px solid rgba(251,191,36,.35);margin-bottom:.7rem}
 .adv-q{font-size:clamp(1.22rem,3.5vw,1.62rem);font-weight:800;line-height:1.48;margin-bottom:1.15rem}
+.adv-hint-box{background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.4);border-radius:16px;padding:.75rem 1rem;margin-bottom:1rem;font-size:.92rem;line-height:1.5;color:#fde68a;display:none;animation:advSlideIn .25s ease}
 .adv-opts{display:flex;flex-direction:column;gap:.75rem}
 .adv-opt{background:var(--glass);border:2px solid var(--glass-border);border-bottom-width:5px;border-radius:18px;padding:1rem 1.15rem;font-size:clamp(1.04rem,2.9vw,1.22rem);font-weight:700;color:#fff;text-align:left;cursor:pointer;min-height:58px;transition:transform .15s cubic-bezier(.34,1.56,.64,1),background .15s,border-color .15s,box-shadow .15s;width:100%;animation:advOptIn .35s cubic-bezier(.34,1.56,.64,1) backwards}
 .adv-opt:nth-child(1){animation-delay:.03s}.adv-opt:nth-child(2){animation-delay:.08s}.adv-opt:nth-child(3){animation-delay:.13s}.adv-opt:nth-child(4){animation-delay:.18s}
@@ -524,7 +659,6 @@ function ensureCss() {
 .adv-w.good{border-color:var(--success);background:rgba(16,185,129,.28);animation:advPopGood .38s}
 .adv-w.bad{border-color:var(--error);background:rgba(239,68,68,.28);animation:advShake .4s}
 
-/* Cajón inferior de feedback */
 .adv-foot{border-top:2px solid rgba(255,255,255,.08);padding:1rem 1.2rem calc(1rem + env(safe-area-inset-bottom));transition:background .25s,border-color .25s}
 .adv-foot .in{max-width:760px;margin:0 auto}
 .adv-foot.ok{background:linear-gradient(180deg,#064e3b,#042f2e);border-color:#10b981;animation:advDrawerUp .32s cubic-bezier(.34,1.56,.64,1)}
@@ -545,7 +679,6 @@ function ensureCss() {
 .adv-foot.ok .adv-main{background:#10b981;box-shadow:0 6px 0 #047857}
 .adv-foot.bad .adv-main{background:#ef4444;box-shadow:0 6px 0 #991b1b}
 
-/* Píldora y resultados */
 .adv-pill{background:var(--glass);border:1px solid var(--glass-border);border-radius:26px;padding:1.6rem;text-align:left;animation:advStageIn .38s cubic-bezier(.22,1,.36,1)}
 .adv-pill .em{font-size:3rem;display:inline-block;margin-bottom:.4rem;animation:advBob 2s ease-in-out infinite}
 .adv-pill h2{font-size:1.5rem;margin-bottom:.7rem;color:#fbbf24}
@@ -560,7 +693,6 @@ function ensureCss() {
 .adv-grade-circle .num{font-size:2.4rem;line-height:1}
 .adv-grade-circle .lbl{font-size:.75rem;opacity:.8;margin-top:4px}
 
-/* Modal Reto Relámpago de Recarga de Vidas */
 .adv-sprint-ov{position:fixed;inset:0;z-index:1100;background: rgba(7,11,20,.92);backdrop-filter:blur(14px);display:none;align-items:center;justify-content:center;padding:1rem}
 .adv-sprint-card{background:linear-gradient(145deg,#1e1b4b,#0f172a);border:2px solid rgba(236,72,153,.45);border-radius:28px;padding:1.6rem;width:100%;max-width:440px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.65);animation:advPopGood .35s cubic-bezier(.34,1.56,.64,1)}
 .adv-sprint-op{font-size:3.4rem;font-weight:900;margin:.6rem 0;color:#fff;letter-spacing:2px}
@@ -568,11 +700,9 @@ function ensureCss() {
 .adv-sprint-dot{width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.15);transition:.2s}
 .adv-sprint-dot.ok{background:#10b981;box-shadow:0 0 10px #10b981;transform:scale(1.15)}
 
-/* Globo +XP flotante */
 .adv-float-xp{position:fixed;z-index:2000;pointer-events:none;font-weight:900;font-size:1.35rem;color:#fbbf24;text-shadow:0 4px 14px rgba(0,0,0,.65);transform:translate(-50%,-50%);animation:advFloatUp 1.05s cubic-bezier(.22,1,.36,1) forwards}
 @keyframes advFloatUp{0%{opacity:0;transform:translate(-50%,0) scale(.6)}25%{opacity:1;transform:translate(-50%,-18px) scale(1.15)}100%{opacity:0;transform:translate(-50%,-70px) scale(.95)}}
 
-/* Misiones diarias y Álbum de trofeos */
 .adv-quest-row{display:flex;align-items:center;gap:.9rem;background:rgba(255,255,255,.03);border:1px solid var(--glass-border);border-radius:16px;padding:.75rem 1rem;margin-bottom:.6rem}
 .adv-quest-bar{height:10px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;margin-top:.35rem}
 .adv-quest-bar i{display:block;height:100%;background:linear-gradient(90deg,#10b981,#34d399);border-radius:99px;transition:width .4s}
@@ -582,7 +712,6 @@ function ensureCss() {
 .adv-trophy.lock{opacity:.48;filter:grayscale(.9)}
 .adv-trophy:hover{transform:translateY(-3px)}
 
-/* Biblioteca */
 .adv-libcard{background:var(--glass);border:1px solid var(--glass-border);border-radius:20px;padding:1.1rem 1.2rem;cursor:pointer;transition:.2s;display:flex;gap:1rem;align-items:center}
 .adv-libcard:hover{border-color:var(--c);background:var(--glass-strong);transform:translateY(-3px)}
 .adv-libcard .n{width:44px;height:44px;border-radius:14px;background:var(--c);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.2rem;flex-shrink:0}
@@ -593,6 +722,8 @@ function ensureCss() {
 .adv-act:hover{border-color:var(--c);transform:translateY(-2px)}
 .adv-sum{background:var(--glass);border-left:5px solid var(--c);border-radius:14px;padding:1rem 1.2rem;margin-bottom:.8rem}
 .adv-sum b.t{display:block;color:#fbbf24;margin-bottom:.25rem}
+.adv-example-box{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.35);border-radius:18px;padding:1.1rem 1.2rem;margin-bottom:1.2rem}
+.adv-rec-banner{background:linear-gradient(135deg,rgba(236,72,153,.22),rgba(245,158,11,.18));border:2px solid #f472b6;border-radius:22px;padding:1.1rem 1.3rem;margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;box-shadow:0 8px 25px rgba(236,72,153,.2)}
 @media(max-width:860px){.adv-grid2{grid-template-columns:1fr}.adv-cols{gap:.6rem}.adv-node{width:72px;height:72px}.adv-banner{margin-top:1.2rem}.adv-tabs{display:grid;grid-template-columns:repeat(2,1fr);gap:.45rem}.adv-tab{min-width:0;padding:.55rem .4rem;font-size:.88rem}}
 @media(max-height:620px){.adv-q{margin-bottom:.7rem}.adv-body{padding:.5rem 1rem}}
 `;
@@ -817,7 +948,6 @@ R.tap = function (e, stage, onChange) {
 
 /* =========================================================
    ⚡ RETO RELÁMPAGO DE CÁLCULO (PARA RECARGAR VIDAS ❤️)
-   6 operaciones de 1 cifra en 25 segundos con Numpad táctil
    ========================================================= */
 let SP = null;
 function ensureSprintModal() {
@@ -832,15 +962,12 @@ function genSprintOps(count) {
   for (let i = 0; i < count; i++) {
     const kind = A.rnd(1, 10);
     if (kind <= 6) {
-      // Multiplicación de 1 cifra por 1 cifra (tablas del 2 al 9)
       const a = A.rnd(2, 9), b = A.rnd(2, 9);
       ops.push({ q: `${a} × ${b}`, a: a * b });
     } else if (kind <= 8) {
-      // Suma ágil de 1 cifra
       const a = A.rnd(3, 9), b = A.rnd(3, 9);
       ops.push({ q: `${a} + ${b}`, a: a + b });
     } else {
-      // Resta ágil de 1 cifra
       const b = A.rnd(2, 8), a = b + A.rnd(2, 9);
       ops.push({ q: `${a} − ${b}`, a: a - b });
     }
@@ -872,7 +999,6 @@ A.openHeartSprint = function (onDoneCallback) {
 };
 
 function runSprintGame(onDoneCallback) {
-  const modal = document.getElementById('adv-sprint');
   const card = document.getElementById('adv-sprint-card');
   const ops = genSprintOps(6);
   SP = { ops, idx: 0, val: '', timeLeft: 25, timer: null, cb: onDoneCallback };
@@ -964,6 +1090,20 @@ function finishSprint(won) {
   }
 }
 
+/* ---------- pista contextual para ejercicios ---------- */
+function getHintText(e) {
+  if (e.hint) return e.hint;
+  if (e.missionId && A.hasContent(e.missionId)) {
+    const sts = A.content[e.missionId].stations;
+    const pills = sts.flatMap(s => s.intro || []);
+    if (pills.length) {
+      const p = pills[Math.floor(Math.random() * pills.length)];
+      return `<b>Recuerda (${p.h}):</b> ${p.p}`;
+    }
+  }
+  return 'Lee el enunciado despacio, fija el dato clave y descarta primero las opciones que no encajen.';
+}
+
 /* ---------- sesión de lección (overlay) ---------- */
 let S = null;
 const CHEERS_IDLE = [
@@ -1039,7 +1179,7 @@ A.runSession = function (cfg) {
     cfg, queue: cfg.items.slice(), total: cfg.items.length,
     done: 0, ft: 0, wrong: 0, combo: 0, maxCombo: 0,
     mode: '', cur: null, ctl: null, pillIdx: 0, pills: cfg.intro || [],
-    failedLog: [], startTime: Date.now()
+    failedLog: [], startTime: Date.now(), qStartTime: Date.now()
   };
   document.getElementById('adv-lesson').style.setProperty('--c', cfg.color || '#8b5cf6');
   document.getElementById('adv-combo').textContent = '';
@@ -1054,13 +1194,15 @@ function showPill(i) {
   const p = S.pills[i], stage = document.getElementById('adv-stage'); stage.innerHTML = '';
   const c = el('div', 'adv-pill');
   c.innerHTML = `<span class="em">${p.i || '💡'}</span><h2>${p.h}</h2><p>${p.p}</p>`;
-  const sp = el('button', 'adv-chipbtn', '🔊 Escuchar'); sp.style.marginTop = '1rem'; sp.onclick = () => A.speak(p.h + '. ' + p.p); c.appendChild(sp);
+  const audioFile = p.audio || (S.cfg.missionId && S.cfg.stationIdx !== undefined ? `assets/audio/m${String(S.cfg.missionId).padStart(2,'0')}_s${S.cfg.stationIdx}_p${i}.mp3` : null);
+  const sp = el('button', 'adv-chipbtn', '🔊 Escuchar'); sp.style.marginTop = '1rem'; sp.onclick = () => A.speak(p.h + '. ' + p.p, audioFile); c.appendChild(sp);
   stage.appendChild(c); document.querySelector('.adv-body').scrollTop = 0;
   setMain(i === S.pills.length - 1 ? '¡A practicar!' : 'Siguiente', false);
 }
 function nextEx() {
   if (!S.queue.length) return finish();
   S.mode = 'ex'; setFoot('');
+  S.qStartTime = Date.now();
   A.sfx.slide();
   const e = S.cur = S.queue.shift();
   const mood = S.combo >= 3 ? 'fire' : 'idle';
@@ -1079,7 +1221,19 @@ function nextEx() {
 
   const q = el('div', 'adv-q', e.q);
   const sp = el('button', 'adv-chipbtn', '🔊'); sp.style.cssText = 'padding:.15rem .6rem;margin-left:.6rem;font-size:.9rem;vertical-align:middle'; sp.onclick = () => A.speak(e.q); q.appendChild(sp);
+  if (!S.cfg.isExam && !S.cfg.isBattle) {
+    const hb = el('button', 'adv-chipbtn', '💡 Pista');
+    hb.style.cssText = 'padding:.15rem .65rem;margin-left:.45rem;font-size:.82rem;vertical-align:middle;background:rgba(251,191,36,.15);border-color:rgba(251,191,36,.4);color:#fde68a';
+    hb.onclick = () => {
+      A.sfx.tap();
+      const box = document.getElementById('adv-hint-box');
+      if (box) { box.innerHTML = '💡 ' + getHintText(e); box.style.display = box.style.display === 'block' ? 'none' : 'block'; }
+    };
+    q.appendChild(hb);
+  }
   stage.appendChild(q);
+  const hintBox = el('div', 'adv-hint-box'); hintBox.id = 'adv-hint-box'; stage.appendChild(hintBox);
+
   const upd = () => { if (!S || !S.ctl) return; if (S.ctl.auto) { if (S.ctl.ready() && S.mode === 'ex') resolve(S.ctl.check(), S.cur); } else setMain('Comprobar', !S.ctl.ready()); };
   S.ctl = R[e.t](e, stage, upd);
   setMain('Comprobar', true); document.querySelector('.adv-body').scrollTop = 0;
@@ -1107,6 +1261,9 @@ function onMain() {
 function resolve(r, e) {
   S.mode = 'fb';
   const ok = r.ok, retry = !!e.retry;
+  const elapsed = (Date.now() - (S.qStartTime || Date.now())) / 1000;
+  A.recordTimeMetric(e.missionId, e.q, elapsed, ok);
+
   const f = document.getElementById('adv-fb');
   const ico = document.getElementById('adv-fb-ico');
   if (ok) {
@@ -1125,6 +1282,7 @@ function resolve(r, e) {
     setMain('Continuar', false);
   } else {
     S.combo = 0; S.wrong++;
+    const rushed = elapsed < 2.0;
     if (!retry) {
       S.failedLog.push({ q: e.q, correct: r.correct, why: e.why });
       if (e.missionId) A.recordFail(e.missionId, e, r.correct);
@@ -1149,10 +1307,10 @@ function resolve(r, e) {
     } else {
       A.sfx.err();
     }
-    if (ico) ico.textContent = '💡';
-    f.querySelector('h4').textContent = 'Respuesta correcta:';
+    if (ico) ico.textContent = rushed ? '🐢' : '💡';
+    f.querySelector('h4').textContent = rushed ? '⚡ ¡Demasiado rápido! Lee con calma:' : 'Respuesta correcta:';
     f.querySelector('p').innerHTML = '<b>' + r.correct + '</b>' + (e.why ? '<br><span style="opacity:.9">' + e.why + '</span>' : '');
-    setMascot('sad', '¡No pasa nada! Fíjate en la explicación 💡');
+    setMascot('sad', rushed ? '¡Ey! Has respondido en menos de 2 segundos 🐢. Lee despacio, ¡que tú sabes hacerlo!' : '¡No pasa nada! Fíjate en la explicación 💡');
     setFoot('bad');
     if (S.cfg.noRetry) { S.done++; } else { const again = prepare(e.src, e.rev, e.missionId); again.retry = true; S.queue.push(again); }
     setMain('Continuar', false);
@@ -1174,17 +1332,18 @@ function finish() {
 
   let info = {};
   if (S.cfg.onDone) info = S.cfg.onDone({ stars, acc, passed, ft: S.ft, total: unique, elapsedSec: Math.round((Date.now() - S.startTime) / 1000) }) || {};
+  A.saveProgress();
   setFoot('');
   setMascot(null);
   document.getElementById('adv-barfill').style.width = '100%';
   const stage = document.getElementById('adv-stage');
 
-  // Si es Simulacro de Examen: mostrar boletín escolar con nota sobre 10
   if (S.cfg.isExam) {
     const nota = Math.round((S.ft / Math.max(1, unique)) * 100) / 10;
     const notaStr = nota.toFixed(1).replace('.', ',');
     const calif = nota >= 9 ? '🏆 SOBRESALIENTE' : nota >= 7 ? '🌟 NOTABLE' : nota >= 6 ? '👍 BIEN' : nota >= 5 ? '✔️ SUFICIENTE' : '💪 NECESITA REPASAR';
     const col = nota >= 7 ? '#10b981' : nota >= 5 ? '#f59e0b' : '#ef4444';
+    A.recordExamResult(S.cfg.title, S.cfg.subjectName || 'General', nota, S.ft, unique);
     const failsHtml = S.failedLog.length ? `<div style="text-align:left;margin-top:1.2rem"><h4 style="margin-bottom:.6rem;color:#fca5a5">📋 Repaso de las preguntas falladas (${S.failedLog.length}):</h4>` +
       S.failedLog.map(fl => `<div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:14px;padding:.75rem 1rem;margin-bottom:.5rem"><div style="font-weight:700">${fl.q}</div><div style="color:#34d399;font-size:.9rem;margin-top:.2rem">✓ Respuesta: <b>${fl.correct}</b></div>${fl.why ? `<div style="font-size:.82rem;opacity:.85;margin-top:.2rem">${fl.why}</div>` : ''}</div>`).join('') + `</div>`
       : `<p style="color:#34d399;font-weight:800;margin-top:1rem">🎉 ¡Examen impecable sin un solo fallo! Estás 100 % preparada para el control de clase.</p>`;
@@ -1239,7 +1398,7 @@ function finish() {
   setMain('Continuar', false);
 }
 function closeLesson(completed) {
-  const cb = S && S.cfg.onClose; overlay(false); S = null; try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
+  const cb = S && S.cfg.onClose; overlay(false); S = null; A.stopAudio();
   if (cb) cb(completed);
 }
 
@@ -1254,7 +1413,7 @@ A.startStation = function (id, k, opt) {
   const items = sampleFrom([st.ex], Math.min(7, st.ex.length * 1), id);
   const rev = (k === 0 && !opt.practice) ? reviewItems(id) : [];
   A.runSession({
-    title: st.title, color: color(id), items: rev.concat(items), intro: st.intro,
+    title: st.title, missionId: id, stationIdx: k, color: color(id), items: rev.concat(items), intro: st.intro,
     practice: !!opt.practice, useHearts: !opt.practice,
     onDone: (res) => {
       if (opt.practice) return { note: '📚 Modo biblioteca: practicas sin gastar ni ganar XP.' };
@@ -1269,12 +1428,14 @@ A.startStation = function (id, k, opt) {
 A.startBoss = function (id, opt) {
   if (!needContent(id)) return;
   opt = opt || {};
-  const items = sampleFrom(allPool(id), 9, id);
+  const items = sampleFrom(allPool(id), 10, id);
   A.runSession({
-    title: 'Reto de Maestría', color: color(id), items, intro: [],
+    title: 'Reto de Maestría', missionId: id, color: color(id), items, intro: [],
     practice: !!opt.practice, useHearts: !opt.practice,
+    noRetry: !opt.practice, passMin: 7,
     onDone: (res) => {
       if (opt.practice) return { note: '📚 Modo biblioteca: practicas sin gastar ni ganar XP.' };
+      if (!res.passed) return { note: '👑 El Reto de Maestría exige al menos <b>7 de 10 aciertos</b> a la primera para demostrar dominio real. ¡Repasa las estaciones y vuelve a por la corona!' };
       const m = A.ms(id), was = !!m.b, xp = was ? 0 : A.xpSplit(id)[3];
       m.b = 1; m.stars[3] = Math.max(m.stars[3] || 0, res.stars); A.saveProgress(); if (xp && window.app) window.app.addXP(xp);
       return { xp, note: A.missionDone(id) ? '🎉 ¡MISIÓN COMPLETADA! "' + A.getMeta(id).title + '" ya es tuya.' : '' };
@@ -1288,7 +1449,7 @@ A.startJump = function (id) {
   if (!confirm('⚡ EXAMEN DE SALTO\n\n5 preguntas de toda la misión. Si aciertas 4 o más a la primera, la superas entera y te llevas todos sus XP.\n\n¿Empezamos?')) return;
   const items = sampleFrom(allPool(id), 5, id);
   A.runSession({
-    title: 'Examen de salto', color: color(id), items, intro: [], noRetry: true, passMin: 4, useHearts: true,
+    title: 'Examen de salto', missionId: id, color: color(id), items, intro: [], noRetry: true, passMin: 4, useHearts: true,
     onDone: (res) => {
       if (!res.passed) return { note: 'Necesitabas 4 aciertos. No pasa nada: ¡sigue el camino paso a paso y vuelve a intentarlo cuando quieras!' };
       const m = A.ms(id), split = A.xpSplit(id); let xp = 0;
@@ -1301,7 +1462,7 @@ A.startJump = function (id) {
 };
 A.startMix = function (id, onClose) {
   if (!needContent(id)) return;
-  A.runSession({ title: 'Práctica mixta', color: color(id), items: sampleFrom(allPool(id), 10, id), intro: [], practice: true, onDone: () => ({ note: '📚 Modo biblioteca: practicas sin gastar ni ganar XP.' }), onClose });
+  A.runSession({ title: 'Práctica mixta', missionId: id, color: color(id), items: sampleFrom(allPool(id), 10, id), intro: [], practice: true, onDone: () => ({ note: '📚 Modo biblioteca: practicas sin gastar ni ganar XP.' }), onClose });
 };
 
 /* ---------- 🩺 BUZÓN DE FALLOS ---------- */
@@ -1332,10 +1493,11 @@ A.startInboxReview = function () {
 /* ---------- 📝 SIMULACRO DE EXAMEN (NOTA SOBRE 10) ---------- */
 A.startExamMission = function (id) {
   if (!needContent(id)) return;
+  const m = A.getMeta(id);
   const items = sampleFrom(allPool(id), 10, id);
   A.runSession({
-    title: 'Simulacro de Examen', color: color(id), items, intro: [],
-    noRetry: true, isExam: true, passMin: 5,
+    title: 'Examen: ' + m.title, subjectName: A.subjectOf(m.subject).short,
+    color: color(id), items, intro: [], noRetry: true, isExam: true, passMin: 5,
     onClose: () => A.openLibMission(id)
   });
 };
@@ -1371,7 +1533,7 @@ A.launchCustomExam = function (subjectKey) {
   const items = sampleFrom(pools, 10);
   const sub = A.subjectOf(subjectKey);
   A.runSession({
-    title: 'Examen de ' + sub.short, color: sub.color, items, intro: [],
+    title: 'Examen de ' + sub.short, subjectName: sub.short, color: sub.color, items, intro: [],
     noRetry: true, isExam: true, passMin: 5,
     onClose: () => A.renderLibrary(document.getElementById('adv-library'))
   });
@@ -1395,7 +1557,6 @@ A.startSubjectBattle = function (gameType, onScoreCallback) {
     title, color: colorHex, items, intro: [],
     noRetry: true, isBattle: true, passMin: 0,
     onDone: (res) => {
-      // Puntuación: cada acierto vale 10 puntos + bonus de rapidez (hasta 16 puntos extra)
       const speedBonus = res.ft > 0 ? Math.max(0, Math.min(16, Math.round((90 - res.elapsedSec) / 5))) : 0;
       const score = res.ft * 10 + speedBonus;
       if (onScoreCallback) onScoreCallback(score);
@@ -1413,6 +1574,8 @@ A.renderScreen = function () {
   const sub = A.subjectOf(A.subject);
   const h = A.hearts();
   const inboxCount = A.metaSt().inbox.length;
+  const recs = (window.app && window.app.cloudUser && Array.isArray(window.app.cloudUser.recommended_missions)) ? window.app.cloudUser.recommended_missions : [];
+
   const tabs = A.SUBJECTS.map(s => {
     const ms = A.missionsOf(s.key), done = ms.filter(m => A.missionDone(m.id)).length;
     return `<div class="adv-tab ${s.key === A.subject ? 'on' : ''}" style="--c:${s.color}" onclick="Adv.sfx.tap();Adv.setSubject('${s.key}')">${s.icon} ${s.short}<small>${done}/${ms.length} misiones</small></div>`;
@@ -1429,7 +1592,8 @@ A.renderScreen = function () {
   let curId = null;
   list.forEach((m, mi) => {
     const has = A.hasContent(m.id), unl = A.unlocked(m.id, 0), done = A.missionDone(m.id), prog = A.missionProgress(m.id);
-    html += `<div class="adv-banner ${!unl && !done ? 'lock' : ''}" style="--c:${sub.color}"><div class="k">MISIÓN ${mi + 1} ${done ? '· ✅ COMPLETADA' : ''}</div><h3>${m.title}</h3><p>${m.objective.length > 150 ? m.objective.slice(0, 148) + '…' : m.objective}</p>
+    const isRec = recs.some(r => Number(r.id) === m.id);
+    html += `<div class="adv-banner ${!unl && !done ? 'lock' : ''}" style="--c:${sub.color}"><div class="k">MISIÓN ${mi + 1} ${done ? '· ✅ COMPLETADA' : ''} ${isRec ? '· 📌 EXAMEN DE LA SEMANA' : ''}</div><h3>${m.title}</h3><p>${m.objective.length > 150 ? m.objective.slice(0, 148) + '…' : m.objective}</p>
       <div class="row"><span class="adv-chip">⭐ ${m.xp} XP</span><span class="adv-chip">${prog}/4</span>${!done ? `<button class="adv-jump" onclick="Adv.sfx.tap();Adv.startJump(${m.id})">⚡ Examen de salto</button>` : ''}</div></div>`;
     for (let k = 0; k < 4; k++) {
       const nd = A.nodeDone(m.id, k), un = A.unlocked(m.id, k);
@@ -1452,17 +1616,19 @@ A.clickNode = function (id, k) {
   k === 3 ? A.startBoss(id) : A.startStation(id, k);
 };
 
-/* ---------- BIBLIOTECA (todo el temario + Simulacro de Examen) ---------- */
+/* ---------- BIBLIOTECA (todo el temario + ejemplos resueltos + simulacro) ---------- */
 A.libSubject = null;
 A.renderLibrary = function (box) {
   if (!box) return;
   ensureCss();
   if (!A.libSubject) A.libSubject = A.SUBJECTS[0].key;
   const sub = A.subjectOf(A.libSubject);
+  const recs = (window.app && window.app.cloudUser && Array.isArray(window.app.cloudUser.recommended_missions)) ? window.app.cloudUser.recommended_missions : [];
   const tabs = A.SUBJECTS.map(s => `<div class="adv-tab ${s.key === A.libSubject ? 'on' : ''}" style="--c:${s.color}" onclick="Adv.sfx.tap();Adv.setLibSubject('${s.key}')">${s.icon} ${s.short}</div>`).join('');
   const cards = A.missionsOf(A.libSubject).map((m, i) => {
     const has = A.hasContent(m.id), done = A.missionDone(m.id);
-    return `<div class="adv-libcard" style="--c:${sub.color};${has ? '' : 'opacity:.5'}" onclick="Adv.sfx.tap();Adv.openLibMission(${m.id})"><div class="n">${i + 1}</div><div><h4>${m.title} ${done ? '✅' : ''}</h4><small>${has ? 'Resumen de teoría, práctica libre y simulacro de examen' : '🚧 Contenido en preparación'}</small></div></div>`;
+    const isRec = recs.some(r => Number(r.id) === m.id);
+    return `<div class="adv-libcard" style="--c:${sub.color};${has ? '' : 'opacity:.5'};${isRec ? 'border-color:#f472b6;' : ''}" onclick="Adv.sfx.tap();Adv.openLibMission(${m.id})"><div class="n">${i + 1}</div><div><h4>${m.title} ${done ? '✅' : ''} ${isRec ? '<span style="font-size:.7rem;background:#ec4899;padding:2px 6px;border-radius:6px;margin-left:4px">📌 Examen</span>' : ''}</h4><small>${has ? 'Resumen, ejemplo resuelto, práctica y simulacro de examen' : '🚧 Contenido en preparación'}</small></div></div>`;
   }).join('');
   box.innerHTML = `<div class="adv-tabs" style="position:static">${tabs}</div>
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.8rem;margin:.6rem 0 1rem;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.3);border-radius:18px;padding:.9rem 1.2rem">
@@ -1472,17 +1638,31 @@ A.renderLibrary = function (box) {
     <div class="adv-liblist">${cards}</div>`;
 };
 A.setLibSubject = function (key) { A.libSubject = key; A.renderLibrary(document.getElementById('adv-library')); };
+function buildWorkedExampleHtml(c) {
+  const exPool = c.stations.flatMap(s => s.ex || []);
+  const fixed = exPool.find(e => e.t === 'choice' || e.t === 'num') || exPool.find(e => e.t === 'gen');
+  if (!fixed) return '';
+  const ex = fixed.t === 'gen' ? fixed.f() : fixed;
+  const ansText = ex.t === 'choice' ? ex.o[ex.a] : (ex.t === 'num' ? A.fmt(ex.a) + (ex.u ? ' ' + ex.u : '') : (ex.a ? 'Verdadero' : 'Falso'));
+  return `<div class="adv-example-box">
+    <div style="font-weight:800;color:#34d399;margin-bottom:.4rem">🧠 Ejemplo resuelto paso a paso (Truco de examen)</div>
+    <div style="font-weight:700;margin-bottom:.35rem">${ex.q}</div>
+    <div style="color:#fbbf24;font-weight:800;font-size:.95rem;margin-bottom:.35rem">✓ Solución: ${ansText}</div>
+    <div style="font-size:.88rem;opacity:.92;line-height:1.5">${ex.why || ''}</div>
+  </div>`;
+}
 A.openLibMission = function (id) {
   if (!needContent(id)) return;
   const box = document.getElementById('adv-library'); if (!box) return;
   const m = A.getMeta(id), c = A.content[id], sub = A.subjectOf(m.subject);
-  const sums = c.stations.map((s, k) => `<div class="adv-sum" style="--c:${sub.color}"><b class="t">${A.NODE_ICONS[k]} ${s.title}</b>${(s.intro || []).map(p => `<p style="margin:.4rem 0;line-height:1.6"><b>${p.h}.</b> ${p.p}</p>`).join('')}</div>`).join('');
+  const sums = c.stations.map((s, k) => `<div class="adv-sum" style="--c:${sub.color}"><b class="t">${A.NODE_ICONS[k]} ${s.title}</b>${(s.intro || []).map((p, pi) => `<p style="margin:.4rem 0;line-height:1.6"><b>${p.h}.</b> ${p.p} <button class="adv-chipbtn" style="padding:.1rem .45rem;font-size:.75rem;margin-left:.3rem" onclick="Adv.speak(this.parentElement.textContent, 'assets/audio/m${String(id).padStart(2,'0')}_s${k}_p${pi}.mp3')">🔊</button></p>`).join('')}</div>`).join('');
+  const exHtml = buildWorkedExampleHtml(c);
   box.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.6rem;margin-bottom:1rem">
       <button class="btn" style="padding:.5rem 1rem;font-size:.8rem;background:transparent;border:1px solid var(--glass-border)" onclick="Adv.sfx.tap();Adv.renderLibrary(document.getElementById('adv-library'))">⬅ Temario</button>
       <button class="adv-tool-btn exam" onclick="Adv.sfx.tap();Adv.startExamMission(${id})">📝 Simulacro de Examen de este tema (Nota / 10)</button>
     </div>
     <div class="glass-card" style="--c:${sub.color};margin-bottom:1rem"><div style="font-size:.75rem;font-weight:800;opacity:.7">${sub.icon} ${sub.short.toUpperCase()}</div><h2 style="margin:.2rem 0 .5rem">${m.title}</h2><p style="opacity:.8;line-height:1.55">${m.objective}</p></div>
-    <h3 style="margin:1rem 0 .6rem">📝 Resumen para estudiar</h3>${sums}
+    <h3 style="margin:1rem 0 .6rem">📝 Resumen para estudiar</h3>${sums}${exHtml}
     <h3 style="margin:1.4rem 0 .6rem">🎮 Practicar (sin gastar vidas ni candados)</h3>
     <div style="display:grid;gap:.6rem;--c:${sub.color}">
       ${c.stations.map((s, k) => `<button class="adv-act" onclick="Adv.sfx.tap();Adv.libStation(${id},${k})">${A.NODE_ICONS[k]} Practicar: ${s.title}</button>`).join('')}
@@ -1496,7 +1676,7 @@ A.libBoss = id => A.startBoss(id, { practice: true, onClose: () => A.openLibMiss
 A.libMix = id => A.startMix(id, () => A.openLibMission(id));
 
 /* =========================================================
-   🎯 PANEL DE INICIO: CONTINUAR AVENTURA + 3 MISIONES DIARIAS
+   🎯 INICIO: EXAMEN DE LA SEMANA + CONTINUAR AVENTURA + MISIONES DIARIAS
    ========================================================= */
 A.findNextStep = function () {
   for (const s of A.SUBJECTS) {
@@ -1523,7 +1703,25 @@ A.renderHomeWidget = function () {
   ];
   const allDone = qList.every(x => x.cur >= x.max);
 
-  host.innerHTML = `
+  const recs = (window.app && window.app.cloudUser && Array.isArray(window.app.cloudUser.recommended_missions)) ? window.app.cloudUser.recommended_missions : [];
+  const recHtml = recs.length ? recs.map(r => {
+    const m = A.getMeta(Number(r.id));
+    if (!m) return '';
+    const sub = A.subjectOf(m.subject);
+    return `<div class="adv-rec-banner">
+      <div>
+        <div style="font-size:.75rem;font-weight:900;color:#f472b6;letter-spacing:.05em">📌 EXAMEN DE LA SEMANA · RECOMENDADO POR ${String(r.assignedBy || 'PAPI/ADMIN').toUpperCase()}</div>
+        <h3 style="margin:.2rem 0;font-size:1.25rem">${sub.icon} ${m.title}</h3>
+        <div style="font-size:.82rem;opacity:.85">${r.note || 'Repasa el resumen en Biblioteca y haz un simulacro para sacar un 10.'}</div>
+      </div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <button class="adv-tool-btn" style="background:${sub.color}" onclick="Adv.openLibFromTrophy('${sub.key}',${m.id})">📚 Estudiar Tema</button>
+        <button class="adv-tool-btn exam" onclick="Adv.startExamMission(${m.id})">📝 Simulacro (/10)</button>
+      </div>
+    </div>`;
+  }).join('') : '';
+
+  host.innerHTML = `${recHtml}
     <div class="dash-grid" style="margin-top:.5rem">
       <div class="glass-card" style="background:linear-gradient(135deg,rgba(139,92,246,.22),rgba(236,72,153,.15));border:2px solid rgba(139,92,246,.45);display:flex;flex-direction:column;justify-content:space-between;gap:1rem">
         <div style="display:flex;align-items:center;gap:1rem">
@@ -1584,6 +1782,58 @@ A.claimDailyChest = function () {
   A.confetti();
   A.toast('🎁 ¡Cofre Diario Abierto!', 'Has ganado +75 XP, vidas al máximo y +1 🧊 Protector de Racha.');
   A.renderHomeWidget();
+};
+
+/* =========================================================
+   📊 INFORME DETALLADO PARA SUPER-ADMIN Y MODO PAPI
+   ========================================================= */
+A.renderMetricsReportHtml = function (metrics, progress, fallbackFails) {
+  const mt = metrics || {};
+  const td = todayStr();
+  const todayMin = Math.round(((mt.daily && mt.daily[td]) || 0) / 60 * 10) / 10;
+  const totalMin = Math.round((mt.totalSec || 0) / 60);
+  const qCount = (mt.questions && mt.questions.count) || 0;
+  const avgQ = qCount ? Math.round(((mt.questions.totalSec || 0) / qCount) * 10) / 10 : 0;
+  const impCount = (mt.questions && mt.questions.impulsiveCount) || 0;
+  const stuckCount = (mt.questions && mt.questions.stuckCount) || 0;
+
+  const pAdv = (progress && progress.adv) ? progress.adv : (progress || {});
+  const doneMissions = A.meta.filter(m => { const pm = pAdv[m.id]; return pm && pm.s && pm.s[0] && pm.s[1] && pm.s[2] && pm.b; }).length;
+  const exams = (progress && progress.advMeta && Array.isArray(progress.advMeta.exams)) ? progress.advMeta.exams : [];
+  const fails = (progress && Array.isArray(progress.fails) && progress.fails.length) ? progress.fails : (fallbackFails || []);
+  const alerts = Array.isArray(mt.alerts) ? mt.alerts : [];
+
+  const examsHtml = exams.length ? exams.slice(-5).reverse().map(ex => `
+    <div style="background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.25);border-radius:12px;padding:.55rem .9rem;display:flex;justify-content:space-between;align-items:center">
+      <span>📝 <b>${ex.title}</b> (${ex.subject})</span>
+      <span style="font-weight:900;color:${ex.nota >= 7 ? '#34d399' : ex.nota >= 5 ? '#fbbf24' : '#fca5a5'}">${String(ex.nota).replace('.', ',')} / 10 (${ex.ft}/${ex.total})</span>
+    </div>`).join('') : '<p style="opacity:.6;font-size:.84rem">Aún no ha realizado simulacros de examen.</p>';
+
+  const alertsHtml = alerts.length ? alerts.slice(-6).reverse().map(al => `
+    <div style="background:${al.type === 'impulsive' ? 'rgba(245,158,11,.1)' : 'rgba(139,92,246,.1)'};border:1px solid ${al.type === 'impulsive' ? 'rgba(245,158,11,.3)' : 'rgba(139,92,246,.3)'};border-radius:12px;padding:.55rem .9rem;display:flex;justify-content:space-between;align-items:center;gap:.5rem">
+      <span>${al.type === 'impulsive' ? '⚡ <b>Respuesta impulsiva</b>' : '🐢 <b>Se atascó</b>'} (${al.missionTitle}): ${al.q}</span>
+      <span style="font-weight:800;white-space:nowrap;color:${al.type === 'impulsive' ? '#fbbf24' : '#c4b5fd'}">${al.sec}s</span>
+    </div>`).join('') : '<p style="opacity:.6;font-size:.84rem">Sin alertas de impulsividad (&lt;2s) ni atascos (&gt;25s).</p>';
+
+  const failsHtml = fails.length ? fails.slice(-6).reverse().map(f => `
+    <div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);border-radius:12px;padding:.6rem 1rem;display:flex;justify-content:space-between;align-items:center;gap:.5rem">
+      <span>⚠️ <strong>${f.q || f.op || 'Operación'}</strong></span>
+      <span style="color:#fca5a5;font-size:.85rem">Correcto: <b style="color:#34d399">${f.expected || '?'}</b></span>
+    </div>`).join('') : '<p style="opacity:.6;font-size:.85rem">¡No hay fallos recientes registrados!</p>';
+
+  return `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.75rem;margin-bottom:1.2rem">
+      <div style="background:rgba(255,255,255,.04);border-radius:14px;padding:.85rem;text-align:center"><div style="font-size:.75rem;opacity:.6">Hoy / Total</div><div style="font-size:1.3rem;font-weight:800;color:#38bdf8">${todayMin}m / ${totalMin}m</div></div>
+      <div style="background:rgba(255,255,255,.04);border-radius:14px;padding:.85rem;text-align:center"><div style="font-size:.75rem;opacity:.6">Media / Pregunta</div><div style="font-size:1.3rem;font-weight:800;color:#a78bfa">${avgQ}s</div></div>
+      <div style="background:rgba(255,255,255,.04);border-radius:14px;padding:.85rem;text-align:center"><div style="font-size:.75rem;opacity:.6">Misiones 6.º</div><div style="font-size:1.3rem;font-weight:800;color:#34d399">${doneMissions}/40</div></div>
+      <div style="background:rgba(255,255,255,.04);border-radius:14px;padding:.85rem;text-align:center"><div style="font-size:.75rem;opacity:.6">Alertas (&lt;2s / &gt;25s)</div><div style="font-size:1.3rem;font-weight:800;color:#fbbf24">⚡${impCount} · 🐢${stuckCount}</div></div>
+    </div>
+    <h4 style="margin:1rem 0 .5rem;color:#38bdf8">📝 Últimos Simulacros de Examen:</h4>
+    <div style="display:flex;flex-direction:column;gap:.45rem;margin-bottom:1rem">${examsHtml}</div>
+    <h4 style="margin:1rem 0 .5rem;color:#fbbf24">⏱️ Tiempos y Detección de Impulsividad / Atascos:</h4>
+    <div style="display:flex;flex-direction:column;gap:.45rem;margin-bottom:1rem">${alertsHtml}</div>
+    <h4 style="margin:1rem 0 .5rem;color:#fca5a5">🎯 Conceptos o Fallos para Reforzar Juntos:</h4>
+    <div style="display:flex;flex-direction:column;gap:.45rem">${failsHtml}</div>`;
 };
 
 /* =========================================================
