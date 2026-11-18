@@ -8,7 +8,8 @@
     "build": "tsc --noEmit && vite build && node -e \"const fs=require('fs'); ['js','assets'].forEach(d=>fs.cpSync(d,'dist/'+d,{recursive:true}));\"",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "content:build": "node tools/build.js"
+    "content:build": "node tools/build.js",
+    "pack": "zip -r lara_platform_v2.zip index.html package.json package-lock.json tsconfig.json vite.config.ts manifest.json .env.example .gitignore bg.png src supabase js assets content_src tools -x \"supabase/.temp/*\" \"*.DS_Store\" \"*__pycache__*\""
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.0",

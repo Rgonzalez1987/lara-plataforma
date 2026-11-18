@@ -2755,9 +2755,9 @@
                 if(!window.LaraSec) return;
                 const username = prompt("Nombre de usuario del nuevo alumno/tutor (ej. lara):");
                 if(!username || username.trim().length < 2) return;
-                const password = prompt("Contraseña o PIN (mínimo 6 caracteres):");
-                if(!password || password.length < 6) {
-                    this.notify("❌ Error", "La contraseña debe tener al menos 6 caracteres.");
+                const password = prompt("Contraseña o PIN (mínimo 8 caracteres):");
+                if(!password || password.length < 8) {
+                    this.notify("❌ Error", "La contraseña debe tener al menos 8 caracteres.");
                     return;
                 }
                 const grade = prompt("Curso (ej. 6º Primaria):", "6º Primaria") || "6º Primaria";

@@ -45,8 +45,8 @@ Deno.serve(async (req: Request) => {
     if (username.length < 2 || username.length > 32) {
       return jsonResponse({ error: 'El nombre de usuario debe tener entre 2 y 32 caracteres' }, 400);
     }
-    if (password.length < 6) {
-      return jsonResponse({ error: 'La contraseña debe tener al menos 6 caracteres' }, 400);
+    if (password.length < 8) {
+      return jsonResponse({ error: 'La contraseña debe tener al menos 8 caracteres' }, 400);
     }
 
     const userId = crypto.randomUUID();
