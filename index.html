@@ -832,7 +832,7 @@
             <div class="nav-item" data-nav="study" onclick="app.switchScreen('study', this)"><i data-lucide="library"></i> Biblioteca</div>
             <div class="nav-item" data-nav="social" onclick="app.switchScreen('social', this)"><i data-lucide="users"></i> Amigas 🔥</div>
             <div class="nav-item" data-nav="stats" onclick="app.switchScreen('stats', this)"><i data-lucide="bar-chart-3"></i> Progreso</div>
-            <div class="nav-item" data-nav="papi" onclick="app.switchScreen('papi', this)"><i data-lucide="shield-check"></i> Modo Papi</div>
+            <div class="nav-item" data-nav="papi" style="display:none;" onclick="app.switchScreen('papi', this)"><i data-lucide="shield-check"></i> Modo Papi</div>
         </nav>
         <div style="margin-top: auto; padding: 1rem; background: var(--glass); border-radius: 20px; cursor:pointer;" onclick="app.showUserSelection()">
             <p style="font-size: 0.6rem; opacity: 0.5; margin-bottom: 0.2rem;">Perfil Activo</p>
@@ -1412,19 +1412,9 @@
             </div>
         </div>
 
-        <!-- MODO PAPI (CONTROL PARENTAL DE CADA ALUMNA) -->
+        <!-- MODO PAPI (CONTROL PARENTAL POR ROL) -->
         <div id="screen-papi" class="screen">
-            <div class="glass-card" id="papi-login-box" style="max-width:440px; margin:2rem auto; text-align:center; padding:2rem;">
-                <span style="font-size:3rem; display:block; margin-bottom:0.5rem;">👨‍🏫</span>
-                <h2 style="margin-bottom:0.4rem;">Control de Padres / Modo Papi</h2>
-                <p style="opacity:0.7; font-size:0.85rem; margin-bottom:1.5rem;">Introduce tu PIN para configurar la IA y supervisar el progreso de <strong id="papi-student-name">tu hija</strong>:</p>
-                <input type="password" id="papi-pass-input" class="arcade-input" style="font-size:1.8rem; text-align:center; max-width:200px; margin:0 auto 1.2rem auto; letter-spacing:0.3rem;" placeholder="PIN" maxlength="6" onkeyup="if(event.key==='Enter') app.checkPapiPin()">
-                <button class="btn" style="width:100%;" onclick="app.checkPapiPin()">🔓 Desbloquear Panel</button>
-                <p id="papi-pin-msg" style="color:var(--error); font-size:0.8rem; margin-top:0.8rem; display:none;"></p>
-                <small style="opacity:0.5; display:block; margin-top:1rem;">PIN por defecto: 1234 o 7410</small>
-            </div>
-
-            <div id="papi-main-panel" style="display:none; flex-direction:column; gap:1.5rem; max-width:900px; margin:0 auto;">
+            <div id="papi-main-panel" style="display:flex; flex-direction:column; gap:1.5rem; max-width:900px; margin:0 auto;">
                 <div class="glass-card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; padding:1.2rem 1.8rem;">
                     <div>
                         <h2 style="font-size:1.6rem; font-weight:800; color:white;">🛡️ Panel Familiar de <span id="papi-title-student-name" style="color:var(--primary);">Lara</span></h2>
@@ -2424,29 +2414,7 @@
                 const tsn = document.getElementById('papi-title-student-name'); if(tsn) tsn.textContent = studentName;
             },
 
-            checkPapiPin() {
-                const pin = document.getElementById('papi-pass-input').value.trim();
-                const msg = document.getElementById('papi-pin-msg');
-                if(pin === '1234' || pin === '7410') {
-                    if(msg) msg.style.display = 'none';
-                    document.getElementById('papi-login-box').style.display = 'none';
-                    document.getElementById('papi-main-panel').style.display = 'flex';
-                    this.switchPapiTab('ai');
-                    this.renderPapi();
-                    this.renderPapiMissions();
-                    this.renderPapiFails();
-                } else {
-                    if(msg) {
-                        msg.textContent = "❌ PIN Incorrecto. Introduce 1234 o 7410.";
-                        msg.style.display = 'block';
-                    }
-                }
-            },
-
             lockPapi() {
-                document.getElementById('papi-main-panel').style.display = 'none';
-                document.getElementById('papi-login-box').style.display = 'block';
-                const inp = document.getElementById('papi-pass-input'); if(inp) inp.value = '';
                 this.switchScreen('home', document.querySelector('[data-lucide="home"]').parentElement);
             },
 
@@ -2553,6 +2521,9 @@
                 if(sidebar) sidebar.style.display = 'flex';
                 const header = document.getElementById('main-header');
                 if(header) { header.style.display = 'flex'; header.style.visibility = 'visible'; }
+                const role = this.cloudUser ? (this.cloudUser.app_role || this.cloudUser.role) : 'student';
+                const navPapi = document.querySelector('[data-nav="papi"]');
+                if(navPapi) navPapi.style.display = (role === 'guardian' || role === 'admin') ? 'flex' : 'none';
             },
 
             switchSuperTab(tab) {
@@ -3012,6 +2983,19 @@
             save() { localStorage.setItem('lara_excellence_v10', JSON.stringify(this.data)); },
 
             switchScreen(id, el) {
+                const role = this.cloudUser ? (this.cloudUser.app_role || this.cloudUser.role) : null;
+                if(id === 'papi') {
+                    if(role !== 'guardian' && role !== 'admin') {
+                        this.notify("🔒 Acceso restringido", "Solo tutores o administradores pueden acceder al Panel Familiar.");
+                        return;
+                    }
+                }
+                if(id === 'superadmin') {
+                    if(role !== 'admin') {
+                        this.notify("🔒 Acceso restringido", "Solo administradores pueden acceder a la Consola Central.");
+                        return;
+                    }
+                }
                 if(this.timer) { clearInterval(this.timer); this.timer = null; }
                 if(el) { document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active')); el.classList.add('active'); }
                 document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -3027,7 +3011,12 @@
                 if(id==='study') this.renderLibrary();
                 if(id==='social') this.renderSocial();
                 if(id==='stats') this.renderStats();
-                if(id==='papi') this.renderPapi();
+                if(id==='papi') {
+                    this.switchPapiTab('ai');
+                    this.renderPapi();
+                    this.renderPapiMissions();
+                    this.renderPapiFails();
+                }
                 if(id==='superadmin') this.setupAdminInterface();
             },
 
@@ -5466,16 +5455,6 @@
                 });
             },
             modal(id,show=true) { document.getElementById(`modal-${id}`).classList.toggle('active',show); },
-            checkAdmin() { 
-                const pin = document.getElementById('admin-pass-input').value.trim();
-                if(pin === '1234' || pin === '7410') { 
-                    document.getElementById('admin-login-box').style.display='none'; 
-                    document.getElementById('admin-main-panel').style.display='flex'; 
-                    this.switchAdminTab('students'); 
-                } else {
-                    this.notify("❌ PIN Incorrecto", "Introduce el PIN de padres (1234 o 7410).");
-                }
-            },
             startDailyChallenge() { this.dailyBonus = true; this.notify("🌟 Bonus Activado", "¡Ganas 2x XP en todo lo que hagas ahora!"); this.switchScreen('arcade', document.querySelector('[data-lucide="zap"]').parentElement); }
         };
 
