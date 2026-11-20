@@ -1419,7 +1419,8 @@
                         <p style="opacity:0.7; font-size:0.85rem; margin-top:0.2rem;">Gestión global de alumnas, contraseñas, auditoría de retos y catálogo central</p>
                     </div>
                 </div>
-                <div style="display:flex; align-items:center; gap:0.8rem;">
+                <div style="display:flex; align-items:center; gap:0.8rem; flex-wrap:wrap;">
+                    <button class="btn" style="padding:0.5rem 1rem; font-size:0.8rem; background:linear-gradient(135deg, #6366f1, #8b5cf6);" onclick="app.previewAppAsAdmin()">🎮 Probar App</button>
                     <button class="btn" style="padding:0.5rem 1rem; font-size:0.8rem; background:rgba(255,255,255,0.08);" onclick="app.loadAdminStudents()"><i data-lucide="refresh-cw"></i> Actualizar</button>
                     <button class="btn" style="padding:0.5rem 1rem; font-size:0.8rem; background:rgba(239,68,68,0.2); color:#fca5a5; border:1px solid rgba(239,68,68,0.4);" onclick="app.logout()">🚪 Cerrar Sesión</button>
                 </div>
@@ -2845,6 +2846,45 @@
                 }
                 this.setupAdminInterface();
                 this.notify("🏛️ Consola Admin", "Has vuelto al modo administrador.");
+            },
+
+            previewAppAsAdmin() {
+                if (!this.impersonating) {
+                    this.originalAdminSession = this.cloudUser;
+                }
+                this.impersonating = true;
+
+                const bar = document.getElementById('admin-impersonation-bar');
+                if (bar) bar.style.display = 'flex';
+                const nameEl = document.getElementById('impersonated-student-name');
+                if (nameEl) nameEl.textContent = '🛠️ Admin (Modo Pruebas)';
+
+                const previewKey = '__admin_preview__';
+                if (!this.data.users[previewKey]) {
+                    this.data.users[previewKey] = {
+                        grade: '6º Primaria',
+                        xp: 0,
+                        lvl: 1,
+                        history: [],
+                        achievements: [],
+                        fails: [],
+                        mastery: { calcula: { '+': 1, '-': 1, '*': 1, '/': 1 } },
+                        adv: {},
+                        adv_meta: {}
+                    };
+                }
+                this.data.active = 'Admin (Pruebas)';
+                this.curr = this.data.users[previewKey];
+                this.setupStudentInterface();
+
+                const sideName = document.getElementById('sidebar-user-name');
+                if (sideName) sideName.textContent = 'Admin (Pruebas)';
+                const sideGrade = document.getElementById('sidebar-user-grade');
+                if (sideGrade) sideGrade.textContent = '6º Primaria';
+
+                this.updateXP();
+                this.switchScreen('home', document.querySelector('[data-lucide="home"]').parentElement);
+                this.notify("🎮 Modo Pruebas", "Estás viendo la app y los juegos como admin (sin afectar a alumnas ni ranking).");
             },
 
             esc(v) {
