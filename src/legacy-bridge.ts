@@ -1,7 +1,7 @@
 import { escapeHtml, sanitizePedagogicalHtml } from './core/sanitize';
 import { getSupabaseClient } from './core/supabase';
 import { getCurrentProfile, loginWithUsername, logout } from './services/auth.service';
-import { adminCreateUser, getFamilyMembers, setRecommendedMissions } from './services/family.service';
+import { adminCreateUser, adminDeleteUser, getFamilyMembers, setRecommendedMissions } from './services/family.service';
 import {
   awardXpFromSession,
   buyStreakShield,
@@ -26,6 +26,7 @@ const LaraSec = {
   createChallenge,
   submitChallengeScore,
   adminCreateUser,
+  adminDeleteUser,
   getFamilyMembers,
   setRecommendedMissions,
 };

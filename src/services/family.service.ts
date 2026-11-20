@@ -71,3 +71,7 @@ export async function adminCreateUser(
 ): Promise<{ id: string; username: string; appRole: AppRole; familyId: string | null }> {
   return invokeEdgeFunction('admin-create-user', { ...input });
 }
+
+export async function adminDeleteUser(userId: string): Promise<{ ok: boolean; id: string }> {
+  return invokeEdgeFunction('admin-delete-user', { userId });
+}

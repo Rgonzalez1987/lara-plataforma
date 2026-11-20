@@ -2752,10 +2752,10 @@
             },
 
             async adminDeleteStudent(studentId, studentUsername) {
-                if(!confirm(`⚠️ ¿ESTÁS SEGURO de eliminar a '${studentUsername}'?\n\nEsta acción borrará definitivamente su perfil, XP y rachas de la base de datos.`)) return;
+                if(!confirm(`⚠️ ¿ESTÁS SEGURO de eliminar a '${studentUsername}'?\n\nEsta acción borrará definitivamente su cuenta, perfil, XP y rachas de la base de datos.`)) return;
                 try {
-                    const { error } = await sb.from('profiles').delete().eq('id', studentId);
-                    if(error) throw error;
+                    if (!window.LaraSec) throw new Error("Servicio de seguridad no disponible.");
+                    await window.LaraSec.adminDeleteUser(studentId);
                     this.notify("🗑️ Alumna Eliminada", `Se ha borrado a ${studentUsername}.`);
                     await this.loadAdminStudents();
                 } catch(e) {
