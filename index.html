@@ -830,7 +830,7 @@
             <div class="nav-item" data-nav="aventura" onclick="app.switchScreen('aventura', this)"><i data-lucide="map"></i> Aventura</div>
             <div class="nav-item" data-nav="arcade" onclick="app.switchScreen('arcade', this)"><i data-lucide="zap"></i> Aprendo Jugando</div>
             <div class="nav-item" data-nav="study" onclick="app.switchScreen('study', this)"><i data-lucide="library"></i> Biblioteca</div>
-            <div class="nav-item" data-nav="social" onclick="app.switchScreen('social', this)"><i data-lucide="users"></i> Amigas 🔥</div>
+            <div class="nav-item" data-nav="social" onclick="app.switchScreen('social', this)"><i data-lucide="trophy"></i> Ranking 🏆</div>
             <div class="nav-item" data-nav="stats" onclick="app.switchScreen('stats', this)"><i data-lucide="bar-chart-3"></i> Progreso</div>
             <div class="nav-item" data-nav="papi" style="display:none;" onclick="app.switchScreen('papi', this)"><i data-lucide="shield-check"></i> Modo Papi</div>
         </nav>
@@ -942,58 +942,12 @@
                 </div>
             </div>
 
-            <!-- SUB-PESTAÑAS SOCIAL -->
-            <div style="display:flex; gap:0.8rem; background:rgba(0,0,0,0.3); padding:0.4rem; border-radius:18px; max-width:600px;">
-                <div class="segment active" id="tab-social-ranking" onclick="app.switchSocialTab('ranking')">🏆 Ranking de Amigas</div>
-                <div class="segment" id="tab-social-friends" onclick="app.switchSocialTab('friends')">🔍 Buscar y Añadir</div>
-                <div class="segment" id="tab-social-challenges" onclick="app.switchSocialTab('challenges')">⚔️ Retos y Batallas</div>
-            </div>
-
-            <!-- CONTENIDO 1: RANKING / PODIO -->
+            <!-- RANKING GLOBAL / PODIO -->
             <div id="subscreen-ranking" style="display:flex; flex-direction:column; gap:1.5rem;">
+                <h3 style="margin:0;">🏆 Ranking Total</h3>
                 <div id="leaderboard-podium" class="podium-container"></div>
                 <div class="glass-card" style="padding:1rem;">
                     <div id="leaderboard-list" style="display:flex; flex-direction:column; gap:0.6rem;"></div>
-                </div>
-            </div>
-
-            <!-- CONTENIDO 2: BUSCAR Y LISTA DE AMIGAS -->
-            <div id="subscreen-friends" style="display:none; flex-direction:column; gap:1.5rem;">
-                <div class="glass-card">
-                    <h3 style="margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem;"><i data-lucide="user-plus"></i> Buscar Nuevas Amigas</h3>
-                    <div style="display:flex; gap:1rem;">
-                        <input type="text" id="input-search-friend" class="arcade-input" style="font-size:1.1rem; padding:0.8rem; text-align:left; max-width:100%; flex:1;" placeholder="Escribe el nombre de tu compañera..." onkeyup="if(event.key==='Enter') app.searchFriends()">
-                        <button class="btn" style="padding:0 2rem;" onclick="app.searchFriends()">Buscar</button>
-                    </div>
-                    <div id="search-results-list" style="margin-top:1.5rem; display:flex; flex-direction:column; gap:0.6rem;"></div>
-                </div>
-
-                <div class="glass-card">
-                    <h3 style="margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem;"><i data-lucide="users"></i> Mis Amigas Conectadas</h3>
-                    <div id="my-friends-list" style="display:flex; flex-direction:column; gap:0.6rem;"></div>
-                </div>
-            </div>
-
-            <!-- CONTENIDO 3: RETOS Y BATALLAS -->
-            <div id="subscreen-challenges" style="display:none; flex-direction:column; gap:1.5rem;">
-                <div class="glass-card">
-                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
-                        <div>
-                            <h3>⚔️ Retos de Cálculo Mental (60s)</h3>
-                            <p style="opacity:0.7; font-size:0.9rem;">Compite a ver quién responde más operaciones en 60 segundos.</p>
-                        </div>
-                        <button class="btn" onclick="app.openNewChallengeModal()">⚡ Enviar un Reto</button>
-                    </div>
-                </div>
-                
-                <div class="glass-card">
-                    <h4 style="margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem;"><i data-lucide="inbox"></i> Retos Pendientes</h4>
-                    <div id="challenges-pending-list" style="display:flex; flex-direction:column; gap:0.8rem;"></div>
-                </div>
-
-                <div class="glass-card">
-                    <h4 style="margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem;"><i data-lucide="history"></i> Historial de Batallas</h4>
-                    <div id="challenges-history-list" style="display:flex; flex-direction:column; gap:0.8rem;"></div>
                 </div>
             </div>
         </div>
@@ -1474,7 +1428,6 @@
             <!-- Navegación de Pestañas Superadmin -->
             <div style="display:flex; gap:0.6rem; background:rgba(0,0,0,0.3); padding:0.4rem; border-radius:18px; max-width:800px; margin-bottom:1.5rem; overflow-x:auto;">
                 <div class="segment active" id="tab-super-students" onclick="app.switchSuperTab('students')">👥 Alumnas y Cuentas</div>
-                <div class="segment" id="tab-super-battles" onclick="app.switchSuperTab('battles')">⚔️ Auditoría de Retos</div>
                 <div class="segment" id="tab-super-missions" onclick="app.switchSuperTab('missions')">🎯 Catálogo Global</div>
                 <div class="segment" id="tab-super-security" onclick="app.switchSuperTab('security')">🔐 Seguridad Admin</div>
             </div>
@@ -1524,16 +1477,7 @@
                 </div>
             </div>
 
-            <!-- 2. AUDITORÍA DE RETOS Y BATALLAS -->
-            <div id="super-sub-battles" style="display:none; flex-direction:column; gap:1.5rem;">
-                <div class="glass-card">
-                    <h3 style="margin-bottom:0.5rem;">⚔️ Monitor de Partidas entre Alumnas</h3>
-                    <p style="opacity:0.7; font-size:0.85rem; margin-bottom:1.5rem;">Registro de todos los desafíos de cálculo jugados en red:</p>
-                    <div id="super-battles-list" style="display:flex; flex-direction:column; gap:0.8rem;"></div>
-                </div>
-            </div>
-
-            <!-- 3. CATÁLOGO GLOBAL DE MISIONES -->
+            <!-- 2. CATÁLOGO GLOBAL DE MISIONES -->
             <div id="super-sub-missions" style="display:none; flex-direction:column; gap:1.5rem;">
                 <div class="glass-card">
                     <h3>Misiones Disponibles en la Plataforma</h3>
@@ -1567,28 +1511,6 @@
             </div>
         </div>
 
-        <div id="modal-challenge" class="modal">
-            <div class="glass-card" style="width:100%; max-width:440px; text-align:center;">
-                <div style="font-size:3rem; margin-bottom:0.4rem;">⚔️</div>
-                <h2 style="margin-bottom:0.5rem;">Nuevo Reto entre Amigas</h2>
-                <p style="opacity:0.8; font-size:0.88rem; margin-bottom:1rem;">Elige a tu compañera y la asignatura del duelo:</p>
-                <label style="display:block;text-align:left;font-size:0.78rem;opacity:0.7;margin-bottom:0.3rem;">1. ¿A quién retas?</label>
-                <select id="challenge-target-friend" class="arcade-input" style="font-size:1.05rem; padding:0.75rem; width:100%; max-width:100%; margin-bottom:1rem;"></select>
-                <label style="display:block;text-align:left;font-size:0.78rem;opacity:0.7;margin-bottom:0.3rem;">2. Tipo de Batalla:</label>
-                <select id="challenge-game-type" class="arcade-input" style="font-size:1.05rem; padding:0.75rem; width:100%; max-width:100%; margin-bottom:1.4rem;">
-                    <option value="math">🧮 Cálculo Mental Rápido (60s)</option>
-                    <option value="lengua">📖 Duelo de Lengua (8 preguntas)</option>
-                    <option value="mates_adv">📐 Duelo de Matemáticas 6.º (8 preguntas)</option>
-                    <option value="naturales">🌿 Duelo de Ciencias Naturales (8 preguntas)</option>
-                    <option value="sociales">🌍 Duelo de Ciencias Sociales (8 preguntas)</option>
-                    <option value="trivial">🎲 Trivial Mixto de 6.º (Todas las áreas)</option>
-                </select>
-                <div style="display:flex; gap:1rem;">
-                    <button class="btn" style="flex:1;" onclick="app.startChallengeBattle()">🚀 ¡Jugar y Enviar!</button>
-                    <button class="btn" style="flex:1; background:var(--error);" onclick="app.modal('challenge', false)">Cancelar</button>
-                </div>
-            </div>
-        </div>
     </main>
 
     <script src="js/problemas_db.js"></script>
@@ -2127,8 +2049,6 @@
             data: JSON.parse(localStorage.getItem('lara_excellence_v10') || '{"users":{},"active":null,"missions":{},"settings":{}}'),
             selectedAvatar: '⚡',
             cloudUser: JSON.parse(localStorage.getItem('lara_cloud_session') || 'null'),
-            activeChallenge: null,
-            socialTab: 'ranking',
             curr: null, mode: 'time', input: 'pad', cOp: null, st: 0, streak: 0, sCorr: 0, timer: null, studyIdx: 0, currStudy: null, chart: null, dailyBonus: false,
             library: {
                 "young": [
@@ -2529,27 +2449,22 @@
             switchSuperTab(tab) {
                 this.currentSuperTab = tab;
                 const ts = document.getElementById('tab-super-students');
-                const tb = document.getElementById('tab-super-battles');
                 const tm = document.getElementById('tab-super-missions');
                 const tsec = document.getElementById('tab-super-security');
 
                 if(ts) ts.classList.toggle('active', tab === 'students');
-                if(tb) tb.classList.toggle('active', tab === 'battles');
                 if(tm) tm.classList.toggle('active', tab === 'missions');
                 if(tsec) tsec.classList.toggle('active', tab === 'security');
 
                 const ss = document.getElementById('super-sub-students');
-                const sb = document.getElementById('super-sub-battles');
                 const sm = document.getElementById('super-sub-missions');
                 const ssec = document.getElementById('super-sub-security');
 
                 if(ss) ss.style.display = tab === 'students' ? 'flex' : 'none';
-                if(sb) sb.style.display = tab === 'battles' ? 'flex' : 'none';
                 if(sm) sm.style.display = tab === 'missions' ? 'flex' : 'none';
                 if(ssec) ssec.style.display = tab === 'security' ? 'flex' : 'none';
 
                 if(tab === 'students') this.loadAdminStudents();
-                if(tab === 'battles') this.loadAdminBattles();
                 if(tab === 'missions') this.renderSuperMissions();
                 if(tab === 'security') {
                     const msg = document.getElementById('super-admin-pass-change-msg');
@@ -2928,53 +2843,6 @@
                 this.notify("🏛️ Consola Admin", "Has vuelto al modo administrador.");
             },
 
-            async loadAdminBattles() {
-                const list = document.getElementById('super-battles-list');
-                if(!list) return;
-                list.innerHTML = '<div class="loader"></div>';
-                try {
-                    const { data: challenges, error } = await sb
-                        .from('challenges')
-                        .select('*')
-                        .order('created_at', { ascending: false })
-                        .limit(30);
-
-                    if(error || !challenges || challenges.length === 0) {
-                        list.innerHTML = '<p style="opacity:0.6; padding:1rem; text-align:center;">No hay batallas ni retos registrados aún.</p>';
-                        return;
-                    }
-
-                    let html = '';
-                    challenges.forEach(c => {
-                        const statusBadge = c.status === 'completed' 
-                            ? `<span style="background:rgba(16,185,129,0.2); color:#34d399; padding:0.2rem 0.6rem; border-radius:8px; font-size:0.75rem; font-weight:700;">🏆 Finalizada</span>`
-                            : `<span style="background:rgba(245,158,11,0.2); color:#fbbf24; padding:0.2rem 0.6rem; border-radius:8px; font-size:0.75rem; font-weight:700;">⏳ Pendiente</span>`;
-                        const winnerInfo = c.winner_username ? ` · Ganadora: <strong style="color:#34d399;">${this.esc(c.winner_username)}</strong>` : '';
-                        const senderSafe = this.esc(c.sender_username || c.challenger_id);
-                        const receiverSafe = this.esc(c.receiver_username || c.opponent_id);
-                        html += `
-                            <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:14px; padding:1rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.8rem;">
-                                <div>
-                                    <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.3rem;">
-                                        <span style="font-weight:700; font-size:1rem;">⚔️ ${senderSafe} vs ${receiverSafe}</span>
-                                        ${statusBadge}
-                                    </div>
-                                    <div style="font-size:0.85rem; opacity:0.7;">
-                                        Puntuación: <strong>${senderSafe}</strong> (${Number(c.sender_score ?? c.challenger_score) || 0} pts) - <strong>${receiverSafe}</strong> (${Number(c.receiver_score ?? c.opponent_score) || 0} pts)${winnerInfo}
-                                    </div>
-                                </div>
-                                <div style="font-size:0.75rem; opacity:0.5;">
-                                    ${c.created_at ? this.esc(new Date(c.created_at).toLocaleString()) : ''}
-                                </div>
-                            </div>
-                        `;
-                    });
-                    list.innerHTML = html;
-                } catch(e) {
-                    list.innerHTML = `<p style="color:var(--error);">Error al cargar batallas: ${this.esc(e.message)}</p>`;
-                }
-            },
-
             esc(v) {
                 if (window.escapeHtml) return window.escapeHtml(v);
                 return String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -3191,31 +3059,10 @@
                 }
             },
 
-            // --- RED SOCIAL Y GAMIFICACIÓN (DUOLINGO STYLE) ---
-            switchSocialTab(tab) {
-                this.socialTab = tab;
-                const tr = document.getElementById('tab-social-ranking');
-                const tf = document.getElementById('tab-social-friends');
-                const tc = document.getElementById('tab-social-challenges');
-                if(tr) tr.classList.toggle('active', tab === 'ranking');
-                if(tf) tf.classList.toggle('active', tab === 'friends');
-                if(tc) tc.classList.toggle('active', tab === 'challenges');
-
-                const sr = document.getElementById('subscreen-ranking');
-                const sf = document.getElementById('subscreen-friends');
-                const sc = document.getElementById('subscreen-challenges');
-                if(sr) sr.style.display = tab === 'ranking' ? 'flex' : 'none';
-                if(sf) sf.style.display = tab === 'friends' ? 'flex' : 'none';
-                if(sc) sc.style.display = tab === 'challenges' ? 'flex' : 'none';
-
-                if(tab === 'ranking') this.loadLeaderboard();
-                if(tab === 'friends') this.loadFriends();
-                if(tab === 'challenges') this.loadChallenges();
-            },
-
+            // --- RANKING GLOBAL ---
             renderSocial() {
                 this.updateHeaderStreak();
-                this.switchSocialTab(this.socialTab || 'ranking');
+                this.loadLeaderboard();
             },
 
             async loadLeaderboard() {
@@ -3298,349 +3145,6 @@
                 } catch(e) {
                     podiumEl.innerHTML = `<p style="color:var(--error);">Error al cargar ranking: ${this.esc(e.message)}</p>`;
                 }
-            },
-
-            async searchFriends() {
-                const query = document.getElementById('input-search-friend').value.trim();
-                const resEl = document.getElementById('search-results-list');
-                if(!query) return;
-
-                resEl.innerHTML = '<div class="loader"></div>';
-
-                try {
-                    const myId = this.cloudUser ? this.cloudUser.id : '00000000-0000-0000-0000-000000000000';
-                    const { data: users, error } = await sb
-                        .from('profiles')
-                        .select('id, username, grade, avatar, xp, level, streak_count')
-                        .ilike('username', `%${query}%`)
-                        .neq('id', myId)
-                        .limit(10);
-
-                    if(error || !users || users.length === 0) {
-                        resEl.innerHTML = '<p style="opacity:0.6; padding:0.5rem;">No se encontraron compañeras con ese nombre.</p>';
-                        return;
-                    }
-
-                    const { data: myFollows } = await sb
-                        .from('friends')
-                        .select('friend_id')
-                        .eq('user_id', myId);
-
-                    const followedIds = new Set((myFollows || []).map(f => f.friend_id));
-
-                    let html = '';
-                    users.forEach(u => {
-                        const isFollowing = followedIds.has(u.id);
-                        const uid = this.esc(u.id);
-                        html += `
-                            <div class="social-user-row">
-                                <div style="display:flex; align-items:center; gap:1rem;">
-                                    <span style="font-size:1.8rem;">${this.esc(u.avatar || '⚡')}</span>
-                                    <div>
-                                        <div style="font-weight:700;">${this.esc(u.username)}</div>
-                                        <div style="font-size:0.75rem; opacity:0.6;">${this.esc(u.grade)} · Nivel ${Number(u.level) || 1} · 🔥 ${Number(u.streak_count) || 0}d</div>
-                                    </div>
-                                </div>
-                                <button class="btn" style="padding:0.4rem 1rem; font-size:0.8rem; background:${isFollowing ? 'rgba(255,255,255,0.1)' : 'var(--primary)'};" onclick="app.toggleFollow('${uid}', ${isFollowing})">
-                                    ${isFollowing ? '✓ Siguiendo' : '+ Añadir Amiga'}
-                                </button>
-                            </div>
-                        `;
-                    });
-                    resEl.innerHTML = html;
-                } catch(e) {
-                    resEl.innerHTML = `<p style="color:var(--error);">Error al buscar: ${this.esc(e.message)}</p>`;
-                }
-            },
-
-            async toggleFollow(friendId, currentlyFollowing) {
-                if(!this.cloudUser) return;
-                try {
-                    if(currentlyFollowing) {
-                        await sb.from('friends').delete().match({ user_id: this.cloudUser.id, friend_id: friendId });
-                        this.notify("👥 Amistades", "Dejaste de seguir a esta amiga.");
-                    } else {
-                        await sb.from('friends').insert([{ user_id: this.cloudUser.id, friend_id: friendId }]);
-                        this.notify("🤝 ¡Nueva Amiga!", "Ahora son amigas. ¡Puedes retarla a una batalla!");
-                    }
-                    this.searchFriends();
-                    this.loadFriends();
-                } catch(e) {
-                    console.error("Error toggle follow:", e);
-                }
-            },
-
-            async loadFriends() {
-                const listEl = document.getElementById('my-friends-list');
-                if(!listEl || !this.cloudUser) return;
-
-                listEl.innerHTML = '<div class="loader"></div>';
-
-                try {
-                    const { data: friendships, error } = await sb
-                        .from('friends')
-                        .select('friend_id')
-                        .eq('user_id', this.cloudUser.id);
-
-                    if(error || !friendships || friendships.length === 0) {
-                        listEl.innerHTML = '<p style="opacity:0.6; padding:0.5rem;">Aún no has añadido amigas. Usa el buscador de arriba para encontrarlas.</p>';
-                        return;
-                    }
-
-                    const friendIds = friendships.map(f => f.friend_id);
-                    const { data: friendsData } = await sb
-                        .from('profiles')
-                        .select('id, username, grade, avatar, xp, level, streak_count')
-                        .in('id', friendIds);
-
-                    this.friendsList = friendsData || [];
-
-                    let html = '';
-                    this.friendsList.forEach(f => {
-                        const fid = this.esc(f.id);
-                        const fname = this.esc(f.username);
-                        html += `
-                            <div class="social-user-row">
-                                <div style="display:flex; align-items:center; gap:1rem;">
-                                    <span style="font-size:1.8rem;">${this.esc(f.avatar || '⚡')}</span>
-                                    <div>
-                                        <div style="font-weight:700;">${fname}</div>
-                                        <div style="font-size:0.75rem; opacity:0.6;">${this.esc(f.grade)} · Nivel ${Number(f.level) || 1} · 🔥 ${Number(f.streak_count) || 0}d racha</div>
-                                    </div>
-                                </div>
-                                <div style="display:flex; gap:0.5rem;">
-                                    <button class="btn" style="padding:0.4rem 0.8rem; font-size:0.75rem; background:linear-gradient(135deg, #ec4899, #8b5cf6);" onclick="app.launchDirectChallenge('${fid}', '${fname}')">⚔️ Retar</button>
-                                    <button class="btn" style="padding:0.4rem 0.6rem; font-size:0.75rem; background:rgba(239,68,68,0.2); color:#fca5a5;" onclick="app.toggleFollow('${fid}', true)">✕</button>
-                                </div>
-                            </div>
-                        `;
-                    });
-                    listEl.innerHTML = html;
-                } catch(e) {
-                    listEl.innerHTML = `<p style="color:var(--error);">Error al cargar amigas: ${this.esc(e.message)}</p>`;
-                }
-            },
-
-            async openNewChallengeModal() {
-                if(!this.friendsList || this.friendsList.length === 0) {
-                    await this.loadFriends();
-                }
-                const select = document.getElementById('challenge-target-friend');
-                if(!this.friendsList || this.friendsList.length === 0) {
-                    this.notify("👥 Sin Amigas", "Primero añade al menos una amiga con el buscador.");
-                    this.switchSocialTab('friends');
-                    return;
-                }
-
-                select.innerHTML = this.friendsList.map(f => `<option value="${this.esc(f.id)}">${this.esc(f.avatar || '👧')} ${this.esc(f.username)} (${this.esc(f.grade)})</option>`).join('');
-                this.modal('challenge', true);
-            },
-
-            gameTypeLabel(gt) {
-                const map = { math: '🧮 Cálculo 60s', lengua: '📖 Lengua', mates_adv: '📐 Mates 6.º', naturales: '🌿 Naturales', sociales: '🌍 Sociales', trivial: '🎲 Trivial 6.º' };
-                return map[gt] || '🧮 Cálculo 60s';
-            },
-
-            async launchDirectChallenge(friendId, friendName, gameType) {
-                if (!gameType) {
-                    await this.openNewChallengeModal();
-                    const sel = document.getElementById('challenge-target-friend');
-                    if (sel && friendId) sel.value = friendId;
-                    return;
-                }
-                this.activeChallenge = {
-                    isNew: true,
-                    opponentId: friendId,
-                    opponentName: friendName,
-                    gameType: gameType
-                };
-                if (gameType !== 'math' && window.Adv) {
-                    this.notify("⚔️ ¡Duelo Temático!", `Demuestra cuánto sabes de ${this.gameTypeLabel(gameType)} para retar a ${friendName}.`);
-                    Adv.startSubjectBattle(gameType, (score) => this.completeChallengeBattle(score));
-                    return;
-                }
-                this.notify("⚔️ ¡A por el Reto!", `Juega tu mejor partida de cálculo (60s) para retar a ${friendName}.`);
-                this.switchScreen('arcade', document.querySelector('[data-lucide="zap"]').parentElement);
-                this.showArcadeConfig('math');
-                this.startMathGame();
-            },
-
-            startChallengeBattle() {
-                const select = document.getElementById('challenge-target-friend');
-                const gtSel = document.getElementById('challenge-game-type');
-                const targetId = select.value;
-                const gameType = gtSel ? gtSel.value : 'math';
-                const friend = this.friendsList.find(f => f.id === targetId);
-                this.modal('challenge', false);
-                this.launchDirectChallenge(targetId, friend ? friend.username : "tu amiga", gameType);
-            },
-
-            async completeChallengeBattle(score) {
-                if(!this.activeChallenge || !this.cloudUser) return;
-                const ac = this.activeChallenge;
-                this.activeChallenge = null;
-
-                try {
-                    if(ac.isNew) {
-                        await sb.from('challenges').insert([{
-                            challenger_id: this.cloudUser.id,
-                            opponent_id: ac.opponentId,
-                            challenger_score: score,
-                            game_type: ac.gameType || 'math',
-                            status: 'pending'
-                        }]);
-                        this.notify("⚔️ ¡Reto Enviado!", `Conseguiste ${score} puntos en ${this.gameTypeLabel(ac.gameType)}. ¡Reto enviado a ${ac.opponentName}!`);
-                    } else if(ac.challengeId) {
-                        let winnerId = null;
-                        let outcomeMsg = "";
-                        if(score > ac.challengerScore) {
-                            winnerId = this.cloudUser.id;
-                            outcomeMsg = `🎉 ¡VICTORIA! Superaste los ${ac.challengerScore} pts de ${ac.challengerName} con ${score} pts. (+150 XP bonus)`;
-                            this.addXP(150);
-                        } else if(score < ac.challengerScore) {
-                            winnerId = ac.challengerId;
-                            outcomeMsg = `🥈 Buen intento (${score} pts). Ganó ${ac.challengerName} con ${ac.challengerScore} pts. (+30 XP)`;
-                            this.addXP(30);
-                        } else {
-                            outcomeMsg = `🤝 ¡EMPATE perfecto! Ambas consiguieron ${score} pts. (+75 XP)`;
-                            this.addXP(75);
-                        }
-
-                        await sb.from('challenges').update({
-                            opponent_score: score,
-                            status: 'completed',
-                            winner_id: winnerId
-                        }).eq('id', ac.challengeId);
-
-                        sfx.lvl();
-                        this.notify("⚔️ Fin de la Batalla", outcomeMsg);
-                        this.loadChallenges();
-                    }
-                } catch(e) {
-                    console.error("Error challenge finish:", e);
-                }
-            },
-
-            async loadChallenges() {
-                const pendEl = document.getElementById('challenges-pending-list');
-                const histEl = document.getElementById('challenges-history-list');
-                if(!pendEl || !histEl || !this.cloudUser) return;
-
-                pendEl.innerHTML = '<div class="loader"></div>';
-                histEl.innerHTML = '<div class="loader"></div>';
-
-                try {
-                    const { data: challenges, error } = await sb
-                        .from('challenges')
-                        .select('*, challenger:challenger_id(username, avatar), opponent:opponent_id(username, avatar)')
-                        .or(`challenger_id.eq.${this.cloudUser.id},opponent_id.eq.${this.cloudUser.id}`)
-                        .order('created_at', { ascending: false })
-                        .limit(20);
-
-                    if(error || !challenges || challenges.length === 0) {
-                        pendEl.innerHTML = '<p style="opacity:0.6; padding:0.5rem;">No tienes retos pendientes.</p>';
-                        histEl.innerHTML = '<p style="opacity:0.6; padding:0.5rem;">Aún no has jugado ninguna batalla.</p>';
-                        return;
-                    }
-
-                    const pending = challenges.filter(c => c.status === 'pending');
-                    const history = challenges.filter(c => c.status === 'completed');
-
-                    if(pending.length === 0) {
-                        pendEl.innerHTML = '<p style="opacity:0.6; padding:0.5rem;">No tienes retos pendientes.</p>';
-                    } else {
-                        let html = '';
-                        pending.forEach(c => {
-                            const isIncoming = c.opponent_id === this.cloudUser.id;
-                            const gtLabel = this.gameTypeLabel(c.game_type);
-                            if(isIncoming) {
-                                const cName = this.esc(c.challenger?.username || 'Amiga');
-                                const cid = this.esc(c.id);
-                                const chId = this.esc(c.challenger_id);
-                                const gtSafe = this.esc(c.game_type || 'math');
-                                html += `
-                                    <div class="challenge-card">
-                                        <div style="display:flex; align-items:center; gap:0.8rem;">
-                                            <span style="font-size:2rem;">${this.esc(c.challenger?.avatar || '⚡')}</span>
-                                            <div>
-                                                <strong>¡${cName} te ha retado! <span style="font-size:0.75rem;background:rgba(139,92,246,0.25);padding:0.15rem 0.5rem;border-radius:8px;margin-left:0.3rem;">${this.esc(gtLabel)}</span></strong>
-                                                <div style="font-size:0.8rem; opacity:0.7;">Consiguió ${Number(c.challenger_score) || 0} pts. ¿Puedes superarla?</div>
-                                            </div>
-                                        </div>
-                                        <button class="btn" style="padding:0.5rem 1rem; font-size:0.85rem;" onclick="app.acceptChallengeBattle('${cid}', '${cName}', ${Number(c.challenger_score) || 0}, '${chId}', '${gtSafe}')">⚔️ ¡Aceptar Batalla!</button>
-                                    </div>
-                                `;
-                            } else {
-                                html += `
-                                    <div class="challenge-card" style="opacity:0.8;">
-                                        <div style="display:flex; align-items:center; gap:0.8rem;">
-                                            <span style="font-size:2rem;">⏳</span>
-                                            <div>
-                                                <strong>Retaste a ${this.esc(c.opponent?.username || 'Amiga')} <span style="font-size:0.75rem;background:rgba(255,255,255,0.1);padding:0.15rem 0.5rem;border-radius:8px;margin-left:0.3rem;">${this.esc(gtLabel)}</span></strong>
-                                                <div style="font-size:0.8rem; opacity:0.7;">Puntuación enviada: ${Number(c.challenger_score) || 0} pts. Esperando a que juegue.</div>
-                                            </div>
-                                        </div>
-                                        <span style="font-size:0.8rem; opacity:0.5;">En espera</span>
-                                    </div>
-                                `;
-                            }
-                        });
-                        pendEl.innerHTML = html;
-                    }
-
-                    if(history.length === 0) {
-                        histEl.innerHTML = '<p style="opacity:0.6; padding:0.5rem;">Aún no hay batallas terminadas.</p>';
-                    } else {
-                        let hHtml = '';
-                        history.forEach(c => {
-                            const iAmChallenger = c.challenger_id === this.cloudUser.id;
-                            const myScore = iAmChallenger ? c.challenger_score : c.opponent_score;
-                            const otherScore = iAmChallenger ? c.opponent_score : c.challenger_score;
-                            const otherName = this.esc(iAmChallenger ? c.opponent?.username : c.challenger?.username);
-                            const otherAvatar = this.esc(iAmChallenger ? c.opponent?.avatar : c.challenger?.avatar);
-                            const gtLabel = this.gameTypeLabel(c.game_type);
-
-                            const iWon = c.winner_id === this.cloudUser.id;
-                            const tie = myScore === otherScore;
-
-                            hHtml += `
-                                <div class="challenge-card" style="border-left: 4px solid ${iWon ? 'var(--success)' : tie ? 'var(--warning)' : 'var(--error)'};">
-                                    <div style="display:flex; align-items:center; gap:0.8rem;">
-                                        <span style="font-size:1.8rem;">${otherAvatar || '👧'}</span>
-                                        <div>
-                                            <strong>${iWon ? '🏆 Victoria' : tie ? '🤝 Empate' : '🥈 2º puesto'} contra ${otherName} <span style="font-size:0.72rem;opacity:0.75;">(${gtLabel})</span></strong>
-                                            <div style="font-size:0.8rem; opacity:0.7;">Tú: ${myScore} pts vs ${otherName}: ${otherScore} pts</div>
-                                        </div>
-                                    </div>
-                                    <span style="font-weight:800; font-size:1.1rem; color:${iWon ? 'var(--success)' : tie ? '#fbbf24' : 'rgba(255,255,255,0.4)'};">${iWon ? '+150 XP' : tie ? '+75 XP' : '+30 XP'}</span>
-                                </div>
-                            `;
-                        });
-                        histEl.innerHTML = hHtml;
-                    }
-                } catch(e) {
-                    pendEl.innerHTML = `<p style="color:var(--error);">Error: ${e.message}</p>`;
-                }
-            },
-
-            acceptChallengeBattle(challengeId, challengerName, challengerScore, challengerId, gameType) {
-                const gt = gameType || 'math';
-                this.activeChallenge = {
-                    challengeId: challengeId,
-                    challengerId: challengerId,
-                    challengerName: challengerName,
-                    challengerScore: challengerScore,
-                    gameType: gt
-                };
-                if (gt !== 'math' && window.Adv) {
-                    this.notify("⚔️ ¡Duelo Iniciada!", `Supera los ${challengerScore} pts de ${challengerName} en ${this.gameTypeLabel(gt)}.`);
-                    Adv.startSubjectBattle(gt, (score) => this.completeChallengeBattle(score));
-                    return;
-                }
-                this.notify("⚔️ ¡Batalla Iniciada!", `Supera los ${challengerScore} aciertos de ${challengerName}. ¡A por todas!`);
-                this.switchScreen('arcade', document.querySelector('[data-lucide="zap"]').parentElement);
-                this.showArcadeConfig('math');
-                this.startMathGame();
             },
 
             selectUser(n) {
@@ -4369,10 +3873,6 @@
                 document.getElementById('arcade-problemas-zone').style.display = 'none';
                 document.getElementById('explora-extra-stats').style.display = 'none';
                 document.getElementById('arcade-results').style.display = 'block';
-                
-                if (this.activeChallenge) {
-                    this.completeChallengeBattle(this.sCorr);
-                }
                 
                 const scoreLabelEl = document.getElementById('res-score-label');
                 const timeLabelEl = document.getElementById('res-time-label');
