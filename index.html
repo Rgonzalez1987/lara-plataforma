@@ -854,7 +854,7 @@
                 </div>
                 <div class="xp-bar-outer"><div class="xp-bar-inner" id="header-xp-bar"></div></div>
             </div>
-            <div id="header-streak-pill" style="display:flex; align-items:center; gap:0.5rem; background:rgba(251,191,36,0.12); border:1px solid rgba(251,191,36,0.3); padding:0.4rem 0.8rem; border-radius:14px; font-weight:800; font-size:0.85rem; color:#fbbf24; cursor:pointer; margin-right:0.8rem;" onclick="app.switchScreen('social', document.querySelector('[data-lucide=\'users\']').parentElement)" title="Ver Racha y Amigas">
+            <div id="header-streak-pill" style="display:flex; align-items:center; gap:0.5rem; background:rgba(251,191,36,0.12); border:1px solid rgba(251,191,36,0.3); padding:0.4rem 0.8rem; border-radius:14px; font-weight:800; font-size:0.85rem; color:#fbbf24; cursor:pointer; margin-right:0.8rem;" onclick="app.switchScreen('social', document.querySelector('[data-nav=\'social\']'))" title="Ver Racha y Ranking">
                 <span>🔥</span> <span id="header-streak-count">0</span> 
                 <span style="opacity:0.3; margin:0 0.1rem;">|</span> 
                 <span>🧊</span> <span id="header-shield-count" style="color:#38bdf8;">1</span>
@@ -2494,7 +2494,7 @@
 
                     this.adminStudentsList = students;
 
-                    const nonAdmins = students.filter(s => s.role !== 'admin' && s.username.toLowerCase() !== 'admin');
+                    const nonAdmins = students.filter(s => (s.app_role || s.role) !== 'admin' && String(s.username || '').toLowerCase() !== 'admin');
                     const totalXP = nonAdmins.reduce((acc, cur) => acc + (cur.xp || 0), 0);
                     const leader = nonAdmins.length > 0 ? nonAdmins[0] : null;
 
@@ -2506,12 +2506,17 @@
                     if(kpiXP) kpiXP.textContent = totalXP.toLocaleString();
                     if(kpiLeader) kpiLeader.textContent = leader ? `${leader.avatar || '👧'} ${leader.username} (${leader.xp} XP)` : '-';
 
+                    if (nonAdmins.length === 0) {
+                        select.innerHTML = '<option value="">No hay alumnas registradas</option>';
+                        listEl.innerHTML = '<p style="opacity:0.6; padding:1rem;">Aún no se ha registrado ninguna alumna.</p>';
+                        return;
+                    }
+
                     select.innerHTML = '<option value="">-- Elige una alumna para supervisar --</option>' +
-                        students.map(s => `<option value="${this.esc(s.id)}">${this.esc(s.avatar || '👧')} ${this.esc(s.username)} (${this.esc(s.grade)}) - ${Number(s.xp) || 0} XP ${(s.app_role || s.role) === 'admin' ? '[ADMIN]' : ''}</option>`).join('');
+                        nonAdmins.map(s => `<option value="${this.esc(s.id)}">${this.esc(s.avatar || '👧')} ${this.esc(s.username)} (${this.esc(s.grade)}) - ${Number(s.xp) || 0} XP</option>`).join('');
 
                     let html = '';
-                    students.forEach(s => {
-                        const isAdminRow = (s.app_role || s.role) === 'admin' || String(s.username || '').toLowerCase() === 'admin';
+                    nonAdmins.forEach(s => {
                         const sid = this.esc(s.id);
                         const uname = this.esc(s.username);
                         html += `
@@ -2521,7 +2526,6 @@
                                     <div>
                                         <div style="display:flex; align-items:center; gap:0.5rem;">
                                             <span style="font-weight:700; font-size:1.05rem;">${uname}</span>
-                                            ${isAdminRow ? '<span style="background:rgba(236,72,153,0.2); color:#f472b6; font-size:0.7rem; padding:0.1rem 0.5rem; border-radius:6px; font-weight:700;">ADMIN</span>' : ''}
                                             <span style="font-size:0.75rem; background:rgba(0,0,0,0.3); padding:0.1rem 0.45rem; border-radius:4px; opacity:0.75;">🔒 Supabase Auth</span>
                                         </div>
                                         <div style="font-size:0.8rem; opacity:0.6;">${this.esc(s.grade)} · Nivel ${Number(s.level) || 1} · Actividad: ${this.esc(s.last_active_date || 'Hoy')}</div>
@@ -2534,8 +2538,8 @@
                                     <div style="display:flex; gap:0.4rem;">
                                         <button class="btn" style="padding:0.3rem 0.7rem; font-size:0.75rem; background:rgba(255,255,255,0.08);" title="Cambiar Contraseña" onclick="event.stopPropagation(); app.adminUpdateStudentPassword('${sid}', '${uname}')">🔑</button>
                                         <button class="btn" style="padding:0.3rem 0.7rem; font-size:0.75rem; background:rgba(255,255,255,0.08);" title="Editar XP" onclick="event.stopPropagation(); app.adminUpdateStudentXP('${sid}', '${uname}')">💎</button>
-                                        ${!isAdminRow ? `<button class="btn" style="padding:0.3rem 0.7rem; font-size:0.75rem; background:rgba(16,185,129,0.2); color:#34d399;" title="Supervisar" onclick="event.stopPropagation(); app.impersonateStudent('${uname}')">👀</button>` : ''}
-                                        ${!isAdminRow ? `<button class="btn" style="padding:0.3rem 0.7rem; font-size:0.75rem; background:rgba(239,68,68,0.2); color:#fca5a5;" title="Eliminar" onclick="event.stopPropagation(); app.adminDeleteStudent('${sid}', '${uname}')">🗑️</button>` : ''}
+                                        <button class="btn" style="padding:0.3rem 0.7rem; font-size:0.75rem; background:rgba(16,185,129,0.2); color:#34d399;" title="Supervisar" onclick="event.stopPropagation(); app.impersonateStudent('${uname}')">👀</button>
+                                        <button class="btn" style="padding:0.3rem 0.7rem; font-size:0.75rem; background:rgba(239,68,68,0.2); color:#fca5a5;" title="Eliminar" onclick="event.stopPropagation(); app.adminDeleteStudent('${sid}', '${uname}')">🗑️</button>
                                     </div>
                                 </div>
                             </div>
@@ -2543,7 +2547,7 @@
                     });
                     listEl.innerHTML = html;
 
-                    const defaultStudent = nonAdmins[0] || students[0];
+                    const defaultStudent = nonAdmins[0];
                     if(defaultStudent) {
                         select.value = defaultStudent.id;
                         this.renderAdminStudentDetail(defaultStudent.id);
