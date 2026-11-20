@@ -68,7 +68,7 @@ Deno.serve(async (req: Request) => {
       id: userId,
       username,
       display_name: body.displayName?.trim() || username,
-      grade: body.grade?.trim() || '4º Primaria',
+      grade: body.grade?.trim() || '6º Primaria',
       avatar: body.avatar?.trim() || '⚡',
       app_role: appRole,
       account_status: 'active',
